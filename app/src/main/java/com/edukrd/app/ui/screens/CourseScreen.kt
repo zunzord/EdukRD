@@ -4,20 +4,27 @@ import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
+import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack  // <--- Reemplaza la importación "automirrored"
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.edukrd.app.models.Course
+import com.edukrd.app.navigation.AppScreen
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import coil.compose.AsyncImage
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseScreen(navController: NavController, courseId: String) {
     val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid // Obtener el ID del usuario autenticado
 
     var course by remember { mutableStateOf<Course?>(null) }
     var contentList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
@@ -26,16 +33,14 @@ fun CourseScreen(navController: NavController, courseId: String) {
 
     LaunchedEffect(courseId) {
         try {
-            // 🔹 Obtener datos generales del curso
             val courseDoc = db.collection("courses").document(courseId).get().await()
             if (courseDoc.exists()) {
                 course = courseDoc.toObject(Course::class.java)?.copy(id = courseId)
 
-                // 🔹 Obtener contenido del curso desde la subcolección "content"
                 val contentSnapshot = db.collection("courses")
                     .document(courseId)
                     .collection("content")
-                    .orderBy("order") // 🔹 Ordenamos por número de página
+                    .orderBy("order")
                     .get()
                     .await()
 
@@ -51,62 +56,79 @@ fun CourseScreen(navController: NavController, courseId: String) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (loading) {
-            CircularProgressIndicator()
-        } else if (errorMessage != null) {
-            Text(text = errorMessage!!, color = MaterialTheme.colors.error)
-        } else {
-            course?.let {
-                Text(text = it.title, style = MaterialTheme.typography.h4)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = it.description, style = MaterialTheme.typography.body1)
-                Spacer(modifier = Modifier.height(16.dp))
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                // Reemplaza Icons.AutoMirrored.Filled.ArrowBack por Icons.Filled.ArrowBack
+                Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Volver")
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (loading) {
+                CircularProgressIndicator()
+            } else if (errorMessage != null) {
+                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
+            } else {
+                course?.let {
+                    Text(text = it.title, style = MaterialTheme.typography.headlineMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = it.description, style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔹 Mostrar contenido del curso
-                if (contentList.isNotEmpty()) {
-                    Text(text = "Contenido del curso:", style = MaterialTheme.typography.h6)
                     LazyColumn {
                         items(contentList) { page ->
                             Card(
-                                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                elevation = 4.dp
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
-                                    val title = page["title"] as? String ?: "Sin título"
-                                    val text = page["text"] as? String ?: "Sin contenido"
-                                    val imageUrl = page["imageUrl"] as? String
-
-                                    // ✅ Mostrar imagen si existe
-                                    if (!imageUrl.isNullOrEmpty()) {
-                                        AsyncImage(
-                                            model = imageUrl,
-                                            contentDescription = "Imagen del contenido",
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(200.dp)
-                                        )
-                                    }
-
-                                    Text(text = title, style = MaterialTheme.typography.h6)
+                                    AsyncImage(
+                                        model = page["imageUrl"] as? String,
+                                        contentDescription = "Imagen del curso",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = text, style = MaterialTheme.typography.body2)
+                                    Text(
+                                        text = page["text"] as? String ?: "Sin contenido",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                                 }
                             }
                         }
+
+                        // Botón para iniciar la prueba al final del curso
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    if (userId != null) { // Verificar si el usuario está autenticado
+                                        navController.navigate(
+                                            AppScreen.Exam.createRoute(userId, courseId)
+                                        )
+                                    } else {
+                                        Log.e("CourseScreen", "Error: Usuario no autenticado")
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = userId != null // Deshabilitar el botón si no hay usuario
+                            ) {
+                                Text(text = "Tomar Examen")
+                            }
+                        }
                     }
-                } else {
-                    Text(text = "No hay contenido disponible para este curso.", style = MaterialTheme.typography.body2)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = { navController.popBackStack() }) {
-                    Text(text = "Volver")
                 }
             }
         }
