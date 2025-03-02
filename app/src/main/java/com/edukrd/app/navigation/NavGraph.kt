@@ -11,6 +11,8 @@ sealed class AppScreen(val route: String) {
     object Register : AppScreen("register")
     object ForgotPassword : AppScreen("forgot_password")
     object Home : AppScreen("home")
+    object Medals : AppScreen("medals")
+    object Ranking : AppScreen("ranking")
 
     object Course : AppScreen("course/{courseId}") {
         fun createRoute(courseId: String) = "course/$courseId"
@@ -33,6 +35,8 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
         composable(AppScreen.Register.route) { RegisterScreen(navController) }
         composable(AppScreen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
         composable(AppScreen.Home.route) { MainHomeScreen(navController) }
+        composable(AppScreen.Medals.route) { MedalsScreen(navController) }
+        composable(AppScreen.Ranking.route) { RankingScreen(navController) }
 
         composable(AppScreen.Course.route) { backStackEntry ->
             val courseId = backStackEntry.arguments?.getString("courseId")

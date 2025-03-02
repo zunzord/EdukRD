@@ -6,10 +6,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack  // <--- Reemplaza la importación "automirrored"
+import androidx.compose.material.icons.filled.ArrowBack // Usamos Icons.Filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -22,9 +23,10 @@ import kotlinx.coroutines.tasks.await
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseScreen(navController: NavController, courseId: String) {
+    val dominicanBlue = Color(0xFF1565C0)
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
-    val userId = auth.currentUser?.uid // Obtener el ID del usuario autenticado
+    val userId = auth.currentUser?.uid
 
     var course by remember { mutableStateOf<Course?>(null) }
     var contentList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
@@ -61,9 +63,8 @@ fun CourseScreen(navController: NavController, courseId: String) {
             FloatingActionButton(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = dominicanBlue
             ) {
-                // Reemplaza Icons.AutoMirrored.Filled.ArrowBack por Icons.Filled.ArrowBack
                 Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Volver")
             }
         }
@@ -81,7 +82,11 @@ fun CourseScreen(navController: NavController, courseId: String) {
                 Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
             } else {
                 course?.let {
-                    Text(text = it.title, style = MaterialTheme.typography.headlineMedium)
+                    Text(
+                        text = it.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = dominicanBlue
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = it.description, style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -109,12 +114,12 @@ fun CourseScreen(navController: NavController, courseId: String) {
                             }
                         }
 
-                        // Botón para iniciar la prueba al final del curso
+
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = {
-                                    if (userId != null) { // Verificar si el usuario está autenticado
+                                    if (userId != null) {
                                         navController.navigate(
                                             AppScreen.Exam.createRoute(userId, courseId)
                                         )
@@ -123,7 +128,11 @@ fun CourseScreen(navController: NavController, courseId: String) {
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                enabled = userId != null // Deshabilitar el botón si no hay usuario
+                                enabled = userId != null,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = dominicanBlue,
+                                    contentColor = Color.White
+                                )
                             ) {
                                 Text(text = "Tomar Examen")
                             }

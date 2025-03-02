@@ -3,40 +3,22 @@ package com.edukrd.app.ui.screens
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,14 +28,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
+import coil.transform.CircleCropTransformation
 import com.edukrd.app.R
 import com.edukrd.app.models.Course
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlin.math.roundToInt
+import androidx.compose.material3.Card
+import androidx.compose.ui.platform.LocalContext
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainHomeScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
@@ -65,11 +52,13 @@ fun MainHomeScreen(navController: NavController) {
     var loading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Para el gráfico de pastel
+    // gráfico de pastel
     var completedCourses by remember { mutableStateOf(0) }
     var totalCourses by remember { mutableStateOf(0) }
 
-    // Carga de datos
+    // cursos aprobado
+    var passedCoursesSet by remember { mutableStateOf(setOf<String>()) }
+
     LaunchedEffect(userId) {
         if (userId == null) {
             errorMessage = "Usuario no autenticado."
@@ -78,7 +67,7 @@ fun MainHomeScreen(navController: NavController) {
         }
 
         try {
-            // 1. Datos de usuario
+            // Datos de usuario
             val userSnapshot = db.collection("users").document(userId).get().await()
             if (userSnapshot.exists()) {
                 userName = userSnapshot.getString("name") ?: "Usuario"
@@ -86,7 +75,7 @@ fun MainHomeScreen(navController: NavController) {
                 errorMessage = "No se encontraron datos del usuario."
             }
 
-            // 2. Cursos totales
+            // Cursos totales
             val coursesSnapshot = db.collection("courses").get().await()
             val coursesList = coursesSnapshot.documents.mapNotNull { doc ->
                 doc.toObject(Course::class.java)?.copy(id = doc.id)
@@ -94,14 +83,15 @@ fun MainHomeScreen(navController: NavController) {
             courses = coursesList
             totalCourses = coursesList.size
 
-            // 3. Cursos aprobados en examResults (estructura plana)
+            // Cursos aprobados
             val passedDocs = db.collection("examResults")
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("passed", true)
                 .get().await()
-            // Se cuentan los cursos únicos aprobados
             val passedCourses = passedDocs.documents.mapNotNull { it.getString("courseId") }.toSet()
             completedCourses = passedCourses.size
+
+            passedCoursesSet = passedCourses
 
             loading = false
         } catch (e: Exception) {
@@ -111,23 +101,7 @@ fun MainHomeScreen(navController: NavController) {
         }
     }
 
-    // Interfaz principal
-    Scaffold(
-        topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        text = "Dashboard",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         if (loading) {
             Box(
                 modifier = Modifier
@@ -152,7 +126,7 @@ fun MainHomeScreen(navController: NavController) {
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Sección de encabezado: gráfico de pastel
+                // Sección gráfico
                 item {
                     HeaderWithPieChart(
                         userName = userName,
@@ -165,6 +139,7 @@ fun MainHomeScreen(navController: NavController) {
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     DashboardOptionsSection(navController)
+
                 }
 
                 // Lista de cursos
@@ -177,12 +152,13 @@ fun MainHomeScreen(navController: NavController) {
                     )
                 }
                 items(courses) { course ->
+                    val isCompleted = passedCoursesSet.contains(course.id)
                     CourseListItem(
                         course = course,
-                        onClick = {
-                            navigateToCourse(userId, course, db, navController)
-                        }
-                    )
+                        isCompleted = isCompleted
+                    ) {
+                        navigateToCourse(userId, course, db, navController)
+                    }
                 }
 
                 // Botón de cerrar sesión
@@ -194,12 +170,19 @@ fun MainHomeScreen(navController: NavController) {
                             .padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Button(onClick = {
-                            auth.signOut()
-                            navController.navigate("login") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                        }) {
+                        val dominicanRed = Color(0xFFD32F2F)
+                        Button(
+                            onClick = {
+                                auth.signOut()
+                                navController.navigate("login") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = dominicanRed,
+                                contentColor = Color.White
+                            )
+                        ) {
                             Text(text = "Cerrar sesión")
                         }
                     }
@@ -222,6 +205,8 @@ fun HeaderWithPieChart(
     val fraction = if (totalCourses > 0) completedCourses.toFloat() / totalCourses else 0f
     val percentage = (fraction * 100).roundToInt()
 
+    val dominicanBlue = Color(0xFF1565C0)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -231,7 +216,7 @@ fun HeaderWithPieChart(
         CourseCompletionPieChart(
             fraction = fraction,
             sizeDp = 120.dp,
-            completedColor = MaterialTheme.colorScheme.primary,
+            completedColor = dominicanBlue,
             remainingColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -266,14 +251,12 @@ fun CourseCompletionPieChart(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val sweepAngle = fraction * 360f
-            // Porción completada
             drawArc(
                 color = completedColor,
                 startAngle = -90f,
                 sweepAngle = sweepAngle,
                 useCenter = true
             )
-            // Porción restante
             drawArc(
                 color = remainingColor,
                 startAngle = sweepAngle - 90f,
@@ -285,10 +268,12 @@ fun CourseCompletionPieChart(
 }
 
 /**
- * Sección con 3 tarjetas (Configuración, Medallas, Tienda)
+ * Sección con 3 tarjetas (Configuración, Tienda, Medallas)
  */
 @Composable
 fun DashboardOptionsSection(navController: NavController) {
+    val dominicanBlue = Color(0xFF1565C0)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -298,43 +283,52 @@ fun DashboardOptionsSection(navController: NavController) {
         // Configuración
         OptionCard(
             title = "Configuración",
-            iconRes = R.drawable.ic_settings
+            iconRes = R.drawable.ic_settings,
+            backgroundColor = dominicanBlue,
+            contentColor = Color.White
         ) {
             navController.navigate("settings")
-        }
-        // Medallas
-        OptionCard(
-            title = "Medallas",
-            iconRes = R.drawable.ic_medal
-        ) {
-            navController.navigate("medals")
         }
         // Tienda
         OptionCard(
             title = "Tienda",
-            iconRes = R.drawable.ic_store
+            iconRes = R.drawable.ic_store,
+            backgroundColor = dominicanBlue,
+            contentColor = Color.White
         ) {
             navController.navigate("store")
+        }
+        // Medallas
+        OptionCard(
+            title = "Medallas",
+            iconRes = R.drawable.ic_medal,
+            backgroundColor = dominicanBlue,
+            contentColor = Color.White
+        ) {
+            navController.navigate("medals")
         }
     }
 }
 
-/**
- * Card individual para cada opción
- */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OptionCard(
     title: String,
     iconRes: Int,
+    backgroundColor: Color,
+    contentColor: Color,
     onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier
             .padding(4.dp)
-            .size(width = 100.dp, height = 100.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .size(width = 130.dp, height = 100.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = backgroundColor,
+            contentColor = contentColor
+        ),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -347,33 +341,61 @@ fun OptionCard(
                 painter = painterResource(id = iconRes),
                 contentDescription = title,
                 modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = contentColor
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor
             )
         }
     }
 }
 
 /**
- * Lista de cursos en formato ListItem + HorizontalDivider
+ * Item de la lista de cursos:
+ * Muestra la medalla (si está aprobado y existe URL) o el ícono genérico, escalado y con placeholders.
  */
 @Composable
 fun CourseListItem(
     course: Course,
+    isCompleted: Boolean,
     onClick: () -> Unit
 ) {
     ListItem(
         headlineContent = { Text(course.title) },
         supportingContent = { Text(course.description) },
         leadingContent = {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_course),
-                contentDescription = null
-            )
+            if (isCompleted && course.medalla.isNotEmpty()) {
+                // Carga la imagen de la medalla usando Coil con un ImageRequest personalizado
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(course.medalla)
+                        .crossfade(true)
+                        .size(Size.ORIGINAL) // Podrías usar .size(64,64) para forzar un escalado
+                        .placeholder(R.drawable.ic_course)
+                        .error(R.drawable.ic_course)
+                        .listener(
+                            onError = { _: ImageRequest, errorResult ->
+                                Log.e("CourseListItem", "Error cargando la medalla", errorResult.throwable)
+                            }
+                        )
+                        .build(),
+                    contentDescription = "Medalla del curso",
+                    modifier = Modifier
+                        .size(32.dp) // Tamaño final en la UI
+                        .clip(CircleShape),
+                    // Ajusta cómo se escala la imagen dentro del contenedor
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else {
+                // Ícono genérico si no está aprobado o no hay URL
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_course),
+                    contentDescription = null
+                )
+            }
         },
         trailingContent = {
             Icon(
@@ -383,7 +405,6 @@ fun CourseListItem(
         },
         modifier = Modifier.clickable { onClick() }
     )
-    // Reemplazamos HorizontalDivider() por Divider() de Material 3
     Divider()
 }
 
