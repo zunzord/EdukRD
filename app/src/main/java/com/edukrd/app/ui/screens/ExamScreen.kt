@@ -13,9 +13,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.edukrd.app.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExamScreen(
     navController: NavController,
@@ -30,10 +32,17 @@ fun ExamScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var passingScore by remember { mutableStateOf(0) }
     var totalQuestions by remember { mutableStateOf(0) }
+
+    // Para mostrar el resultado final
     var showResultDialog by remember { mutableStateOf(false) }
     var userPassed by remember { mutableStateOf(false) }
     var userScore by remember { mutableStateOf(0) }
+    var awardedCoins by remember { mutableStateOf(0) }
 
+    // Corutina para llamar a funciones suspend
+    val scope = rememberCoroutineScope()
+
+    // Cargar el examen
     LaunchedEffect(courseId) {
         try {
             val examSnapshot = db.collection("exams")
@@ -72,6 +81,7 @@ fun ExamScreen(
             Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
         }
     } else {
+        // Mostrar las preguntas
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,6 +108,7 @@ fun ExamScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
 
+                        // Opciones
                         options.forEachIndexed { index, answer ->
                             val isSelected = selectedAnswers[questionId] == index
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -116,6 +127,7 @@ fun ExamScreen(
                 }
             }
 
+            // Botones al final
             item {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -139,17 +151,21 @@ fun ExamScreen(
                     val isFinishEnabled = (selectedAnswers.size == totalQuestions)
                     Button(
                         onClick = {
-                            submitExam(
-                                userId = userId,
-                                courseId = courseId,
-                                selectedAnswers = selectedAnswers,
-                                questions = questions,
-                                passingScore = passingScore,
-                                db = db
-                            ) { finalScore, passed ->
-                                userScore = finalScore
-                                userPassed = passed
-                                showResultDialog = true
+                            // Llamar a la corutina para procesar el examen
+                            scope.launch {
+                                submitExamWithCoins(
+                                    userId = userId,
+                                    courseId = courseId,
+                                    selectedAnswers = selectedAnswers,
+                                    questions = questions,
+                                    passingScore = passingScore,
+                                    db = db
+                                ) { finalScore, passed, coinsEarned ->
+                                    userScore = finalScore
+                                    userPassed = passed
+                                    awardedCoins = coinsEarned
+                                    showResultDialog = true
+                                }
                             }
                         },
                         enabled = isFinishEnabled,
@@ -166,11 +182,11 @@ fun ExamScreen(
 
         if (showResultDialog) {
             AlertDialog(
-                onDismissRequest = { /* No cerrar al tocar fuera */ },
+                onDismissRequest = { /* Evitar cerrar si tocan fuera */ },
                 title = { Text("Resultados del Examen") },
                 text = {
                     if (userPassed) {
-                        Text("¡Felicidades! Aprobaste con $userScore%. Medalla obtenida.")
+                        Text("¡Felicidades! Aprobaste con $userScore%. Has ganado $awardedCoins monedas.")
                     } else {
                         Text("Obtuviste un $userScore%. ¡Inténtalo nuevamente!")
                     }
@@ -196,29 +212,35 @@ fun ExamScreen(
     }
 }
 
-
-fun submitExam(
+/**
+ * Función suspend que evalúa el examen y otorga monedas según la lógica:
+ * - Primera vez que aprueba un curso: +10 coins
+ * - Veces posteriores (mismo curso) en el mismo día: +1 coin
+ * - Límite de 5 exámenes por día (en total). Si ya se hicieron 5, no otorga monedas.
+ */
+suspend fun submitExamWithCoins(
     userId: String,
     courseId: String,
     selectedAnswers: Map<String, Int>,
     questions: List<Map<String, Any>>,
     passingScore: Int,
     db: FirebaseFirestore,
-    onComplete: (finalScore: Int, passed: Boolean) -> Unit
+    onComplete: (finalScore: Int, passed: Boolean, coinsEarned: Int) -> Unit
 ) {
+    // 1. Calcular score
     var score = 0
-    questions.forEach { question ->
-        val questionId = question["questionId"] as? String ?: return@forEach
+    for (question in questions) {
+        val questionId = question["questionId"] as? String ?: continue
         val correctOption = (question["correctOption"] as? Long)?.toInt() ?: -1
         if (selectedAnswers[questionId] == correctOption) {
             score++
         }
     }
-
     val finalScore = (score.toDouble() / questions.size * 100).toInt()
     val passed = finalScore >= passingScore
 
-    val result = mapOf(
+    // 2. Crear registro del examen en examResults
+    val examResultData = mapOf(
         "userId" to userId,
         "courseId" to courseId,
         "score" to finalScore,
@@ -226,14 +248,77 @@ fun submitExam(
         "date" to Timestamp.now()
     )
 
-    db.collection("examResults")
-        .add(result)
-        .addOnSuccessListener {
-            Log.d("ExamScreen", "Examen guardado exitosamente: $result")
-            onComplete(finalScore, passed)
+    // 3. Verificar la cantidad de exámenes que el usuario ha hecho hoy (cualquier curso)
+    val now = Timestamp.now()
+    val (startOfDay, endOfDay) = getDayRange(now)  // Función para obtener rango de hoy
+
+    // Query: examResults del user con date entre startOfDay y endOfDay
+    val dailySnapshot = db.collection("examResults")
+        .whereEqualTo("userId", userId)
+        .whereGreaterThanOrEqualTo("date", startOfDay)
+        .whereLessThan("date", endOfDay)
+        .get()
+        .await()
+    val dailyAttempts = dailySnapshot.size()
+
+    // 4. Si ya hizo 5 exámenes hoy, no otorgar monedas
+    var coinsEarned = 0
+    if (dailyAttempts < 5 && passed) {
+        // 5. Verificar si es la primera vez que aprueba este curso
+        val firstTimeSnapshot = db.collection("examResults")
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("courseId", courseId)
+            .whereEqualTo("passed", true)
+            .limit(1)
+            .get()
+            .await()
+
+        val isFirstTime = firstTimeSnapshot.isEmpty
+        coinsEarned = if (isFirstTime) 10 else 1
+    }
+
+    // 6. Guardar el examen y actualizar las monedas
+    try {
+        // Guardar el resultado
+        val docRef = db.collection("examResults").document()
+        docRef.set(examResultData).await()
+
+        // Si coinsEarned > 0, incrementar monedas
+        if (coinsEarned > 0) {
+            val userRef = db.collection("users").document(userId)
+            userRef.update("coins", com.google.firebase.firestore.FieldValue.increment(coinsEarned.toLong()))
+                .await()
         }
-        .addOnFailureListener { e ->
-            Log.e("ExamScreen", "Error al guardar el examen", e)
-            onComplete(finalScore, passed)
-        }
+
+        onComplete(finalScore, passed, coinsEarned)
+    } catch (e: Exception) {
+        Log.e("ExamScreen", "Error al guardar examen o actualizar monedas", e)
+        onComplete(finalScore, passed, 0)
+    }
+}
+
+/**
+ * Retorna el rango [startOfDay, endOfDay) para la fecha de 'timestamp'.
+ */
+fun getDayRange(timestamp: Timestamp): Pair<Timestamp, Timestamp> {
+    // Convertir a milisegundos
+    val millis = timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000
+    val date = java.util.Date(millis)
+
+    val calendar = java.util.Calendar.getInstance()
+    calendar.time = date
+    // Ajustar a inicio del día
+    calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+    calendar.set(java.util.Calendar.MINUTE, 0)
+    calendar.set(java.util.Calendar.SECOND, 0)
+    calendar.set(java.util.Calendar.MILLISECOND, 0)
+    val startMillis = calendar.timeInMillis
+
+    // Fin del día
+    calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
+    val endMillis = calendar.timeInMillis
+
+    val startTimestamp = Timestamp(startMillis / 1000, ((startMillis % 1000) * 1000000).toInt())
+    val endTimestamp = Timestamp(endMillis / 1000, ((endMillis % 1000) * 1000000).toInt())
+    return Pair(startTimestamp, endTimestamp)
 }

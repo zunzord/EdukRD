@@ -39,14 +39,48 @@ fun RegisterScreen(navController: NavController) {
         Text(text = "Registro", style = MaterialTheme.typography.h4)
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(value = name, onValueChange = { name = it.trim() }, label = { Text("Nombre") })
-        OutlinedTextField(value = lastName, onValueChange = { lastName = it.trim() }, label = { Text("Apellido") })
-        OutlinedTextField(value = birthDate, onValueChange = { birthDate = it.trim() }, label = { Text("Fecha de Nacimiento (DD/MM/AAAA)") })
-        OutlinedTextField(value = sector, onValueChange = { sector = it.trim() }, label = { Text("Sector") })
-        OutlinedTextField(value = phone, onValueChange = { phone = it.trim() }, label = { Text("Teléfono") })
-        OutlinedTextField(value = email, onValueChange = { email = it.trim() }, label = { Text("Email") })
-        OutlinedTextField(value = password, onValueChange = { password = it.trim() }, label = { Text("Contraseña") }, visualTransformation = PasswordVisualTransformation())
-        OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it.trim() }, label = { Text("Confirmar Contraseña") }, visualTransformation = PasswordVisualTransformation())
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it.trim() },
+            label = { Text("Nombre") }
+        )
+        OutlinedTextField(
+            value = lastName,
+            onValueChange = { lastName = it.trim() },
+            label = { Text("Apellido") }
+        )
+        OutlinedTextField(
+            value = birthDate,
+            onValueChange = { birthDate = it.trim() },
+            label = { Text("Fecha de Nacimiento (DD/MM/AAAA)") }
+        )
+        OutlinedTextField(
+            value = sector,
+            onValueChange = { sector = it.trim() },
+            label = { Text("Sector") }
+        )
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it.trim() },
+            label = { Text("Teléfono") }
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it.trim() },
+            label = { Text("Email") }
+        )
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it.trim() },
+            label = { Text("Contraseña") },
+            visualTransformation = PasswordVisualTransformation()
+        )
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it.trim() },
+            label = { Text("Confirmar Contraseña") },
+            visualTransformation = PasswordVisualTransformation()
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -79,7 +113,10 @@ fun RegisterScreen(navController: NavController) {
                                         "sector" to sector,
                                         "phone" to phone,
                                         "email" to email,
-                                        "createdAt" to FieldValue.serverTimestamp()
+                                        "createdAt" to FieldValue.serverTimestamp(),
+                                        "notificationsEnabled" to false,
+                                        "notificationFrequency" to "Diaria",
+                                        "coins" to 0
                                     )
 
                                     db.collection("users").document(userId)

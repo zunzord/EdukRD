@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,9 +19,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-/**
- * Data class para almacenar la información de cada medalla.
- */
 data class MedalData(
     val courseId: String,
     val title: String,
@@ -29,7 +27,6 @@ data class MedalData(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
 fun MedalsScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
@@ -38,11 +35,8 @@ fun MedalsScreen(navController: NavController) {
     var medals by remember { mutableStateOf<List<MedalData>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-
     val dominicanBlue = Color(0xFF1565C0)
 
-    // Efecto para cargar las medallas del usuario
     LaunchedEffect(userId) {
         if (userId == null) {
             errorMessage = "Usuario no autenticado."
@@ -51,25 +45,21 @@ fun MedalsScreen(navController: NavController) {
         }
 
         try {
-            // 1. Obtenemos todos los examResults del usuario con passed = true
             val examResultsSnapshot = db.collection("examResults")
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("passed", true)
                 .get()
                 .await()
 
-            // Extraemos los courseIds aprobados
             val passedCourseIds = examResultsSnapshot.documents.mapNotNull {
                 it.getString("courseId")
-            }.toSet()  // para evitar duplicados
+            }.toSet()
 
             if (passedCourseIds.isEmpty()) {
-                // El usuario no tiene cursos aprobados, mostramos sin medallas
                 loading = false
                 return@LaunchedEffect
             }
 
-            // 2. Por cada courseId, consultamos la info del curso (title y medalla)
             val tempMedals = mutableListOf<MedalData>()
             for (courseId in passedCourseIds) {
                 val courseDoc = db.collection("courses")
@@ -94,7 +84,6 @@ fun MedalsScreen(navController: NavController) {
 
             medals = tempMedals
             loading = false
-
         } catch (e: Exception) {
             Log.e("MedalsScreen", "Error al obtener medallas", e)
             errorMessage = "Error al obtener medallas: ${e.message}"
@@ -102,7 +91,6 @@ fun MedalsScreen(navController: NavController) {
         }
     }
 
-    // pantalla principal
     Scaffold(
         topBar = {
             TopAppBar(
@@ -121,62 +109,76 @@ fun MedalsScreen(navController: NavController) {
         ) {
             when {
                 loading -> {
-                    // Cargando
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 errorMessage != null -> {
-                    // Error
                     Text(
                         text = errorMessage!!,
-                        color = Color.Red,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 medals.isEmpty() -> {
-
                     Text(
                         text = "No has obtenido ninguna medalla.",
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 else -> {
-                    // medallas lista vertical
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(16.dp)
                     ) {
                         items(medals) { medal ->
-                            MedalItem(medal)
+                            MedalItem(medal = medal)
                         }
                     }
                 }
             }
 
-            // Burbuja de Ranking
-            ExtendedFloatingActionButton(
-                onClick = {
-                    navController.navigate("ranking")
-                },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Filled.Leaderboard,
-                        contentDescription = "Ranking",
-                        tint = Color.White
-                    )
-                },
-                text = { Text("Ranking", color = Color.White) },
-                containerColor = dominicanBlue,
+            // Botones inferiores
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            )
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        navController.navigate("home") {
+                            popUpTo("medals") { inclusive = true }
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color.White
+                        )
+                    },
+                    text = { Text("Volver", color = Color.White) },
+                    containerColor = dominicanBlue
+                )
+
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("ranking") },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Leaderboard,
+                            contentDescription = "Ranking",
+                            tint = Color.White
+                        )
+                    },
+                    text = { Text("Ranking", color = Color.White) },
+                    containerColor = dominicanBlue
+                )
+            }
         }
     }
 }
-
 
 @Composable
 fun MedalItem(medal: MedalData) {
@@ -191,7 +193,7 @@ fun MedalItem(medal: MedalData) {
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally // 🔹 Centra la imagen y el título
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AsyncImage(
                 model = medal.imageUrl,
