@@ -15,20 +15,21 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.edukrd.app.models.User
+import com.edukrd.app.navigation.Screen
 import com.edukrd.app.viewmodel.AuthResult
 import com.edukrd.app.viewmodel.AuthViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController) {
+    // Inyección de dependencias de los ViewModels
     val authViewModel: AuthViewModel = hiltViewModel()
     val userViewModel: UserViewModel = hiltViewModel()
     val context = LocalContext.current
 
-    // Campos de registro
+    // Estados para los campos del formulario
     var name by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
@@ -37,15 +38,15 @@ fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var themePreference by remember { mutableStateOf("light") } // Preferencia de tema por defecto
+    var themePreference by remember { mutableStateOf("light") }
 
-    // Observa los resultados de autenticación (login/register)
+    // Se escucha el flujo de resultados de autenticación
     LaunchedEffect(Unit) {
         authViewModel.authResult.collect { result ->
             when (result) {
                 is AuthResult.Success -> {
-                    // Registro exitoso en FirebaseAuth
-                    // Construir objeto User con los datos ingresados
+                    // Si el registro en FirebaseAuth fue exitoso,
+                    // construye el objeto User con los datos ingresados
                     val newUser = User(
                         name = name,
                         lastName = lastName,
@@ -53,37 +54,20 @@ fun RegisterScreen(navController: NavController) {
                         sector = sector,
                         phone = phone,
                         email = email,
+                        createdAt = com.google.firebase.Timestamp.now(),
                         notificationsEnabled = false,
                         notificationFrequency = "Diaria",
                         themePreference = themePreference
                     )
-
-                    // Actualizar datos adicionales en Firestore (UserViewModel obtiene UID internamente)
+                    // Actualiza la información del usuario en Firestore a través del UserViewModel
                     userViewModel.updateCurrentUserData(newUser) { updateSuccess ->
                         if (updateSuccess) {
-                            // Enviar correo de verificación
-                            val currentUser = authViewModel.uid.value
-                            // OJO: En la práctica, usar FirebaseAuth.getInstance().currentUser?.sendEmailVerification()
-                            // si deseas enviar verificación con la sesión actual.
-                            // Ejemplo:
-                            val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-                            firebaseUser?.sendEmailVerification()?.addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    Toast.makeText(
-                                        context,
-                                        "Verifica tu correo antes de iniciar sesión",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                    navController.navigate("login") {
-                                        popUpTo("register") { inclusive = true }
-                                    }
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Error al enviar correo de verificación",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
+                            // Navegar a la pantalla de verificación pendiente, donde se le
+                            // indicará al usuario que revise su correo para confirmar el registro.
+                            navController.navigate(
+                                Screen.VerificationPending.createRoute(email)
+                            ) {
+                                popUpTo("register") { inclusive = true }
                             }
                         } else {
                             Toast.makeText(context, "Error al guardar datos del usuario", Toast.LENGTH_LONG).show()
@@ -91,62 +75,77 @@ fun RegisterScreen(navController: NavController) {
                     }
                 }
                 is AuthResult.Error -> {
-                    // Error al registrar en FirebaseAuth
                     Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Registro") }
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(text = "Registro", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
-
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it.trim() },
                 label = { Text("Nombre") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = lastName,
                 onValueChange = { lastName = it.trim() },
                 label = { Text("Apellido") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = birthDate,
                 onValueChange = { birthDate = it.trim() },
                 label = { Text("Fecha de Nacimiento (DD/MM/AAAA)") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = sector,
                 onValueChange = { sector = it.trim() },
                 label = { Text("Sector") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it.trim() },
                 label = { Text("Teléfono") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it.trim() },
-                label = { Text("Email") },
+                label = { Text("Correo electrónico") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it.trim() },
@@ -155,6 +154,7 @@ fun RegisterScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it.trim() },
@@ -163,9 +163,8 @@ fun RegisterScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Preferencia de Tema", style = MaterialTheme.typography.bodyMedium)
+            Text("Preferencia de Tema", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = (themePreference == "light"),
@@ -179,9 +178,7 @@ fun RegisterScreen(navController: NavController) {
                 )
                 Text("Oscuro")
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Button(
                 onClick = {
                     when {
@@ -197,7 +194,7 @@ fun RegisterScreen(navController: NavController) {
                             Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_LONG).show()
                         }
                         else -> {
-                            // Realiza el registro en FirebaseAuth
+                            // Inicia el proceso de registro en AuthViewModel
                             authViewModel.register(email, password)
                         }
                     }
@@ -206,9 +203,7 @@ fun RegisterScreen(navController: NavController) {
             ) {
                 Text("Registrarse")
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
             TextButton(onClick = { navController.navigate("login") }) {
                 Text("¿Ya tienes cuenta? Inicia sesión")
             }

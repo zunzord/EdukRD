@@ -7,9 +7,11 @@ import com.edukrd.app.models.User
 import com.edukrd.app.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -60,7 +62,8 @@ class UserViewModel @Inject constructor(
 
     /**
      * Actualiza los datos del usuario actual en Firestore.
-     * No se pasa userId como parámetro, pues se obtiene de FirebaseAuth.
+     * Si el UID no está disponible de inmediato (por ejemplo, justo después del registro),
+     * espera hasta 5 segundos para obtenerlo.
      *
      * @param updatedUser: Usuario con los datos actualizados.
      * @param onResult: Callback que indica el resultado de la operación (true/false).
@@ -68,13 +71,21 @@ class UserViewModel @Inject constructor(
     fun updateCurrentUserData(updatedUser: User, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             _loading.value = true
-            val uid = auth.currentUser?.uid
+
+            // Espera hasta que auth.currentUser esté disponible (máximo 5 segundos)
+            val uid = withTimeoutOrNull(5000L) {
+                while (auth.currentUser?.uid == null) {
+                    delay(100)
+                }
+                auth.currentUser?.uid
+            }
             if (uid == null) {
                 onResult(false)
                 _loading.value = false
                 return@launch
             }
 
+            // Agregamos el campo createdAt para registrar la fecha de creación
             val updateMap = mapOf(
                 "name" to updatedUser.name,
                 "lastName" to updatedUser.lastName,
@@ -85,7 +96,8 @@ class UserViewModel @Inject constructor(
                 "notificationsEnabled" to updatedUser.notificationsEnabled,
                 "notificationFrequency" to updatedUser.notificationFrequency,
                 "themePreference" to updatedUser.themePreference,
-                "coins" to updatedUser.coins // Asegúrate de actualizar también el saldo de monedas
+                "coins" to updatedUser.coins,
+                "createdAt" to (updatedUser.createdAt as Any)
             )
 
             try {

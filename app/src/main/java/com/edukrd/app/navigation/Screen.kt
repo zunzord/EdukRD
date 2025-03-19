@@ -16,4 +16,11 @@ sealed class Screen(val route: String) {
         fun createRoute(courseId: String) = "exam/$courseId"
     }
     object Error : Screen("error_screen")
+
+    object VerificationPending : Screen("verification_pending?email={email}") {
+        fun createRoute(email: String) = "verification_pending?email=$email"
+    }
+
+
+
 }

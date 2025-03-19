@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 // Define un sellado para representar los posibles resultados de autenticación.
@@ -31,60 +32,59 @@ class AuthViewModel @Inject constructor(
     val uid: StateFlow<String?> = _uid
 
     /**
-     * Realiza el login del usuario.
+     * Realiza el login del usuario utilizando await para manejar el resultado de forma asíncrona.
      */
     fun login(email: String, password: String) {
         viewModelScope.launch {
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        _authResult.trySend(AuthResult.Success)
-                        // Actualiza el UID cuando se inicia sesión correctamente.
-                        _uid.value = auth.currentUser?.uid
-                    } else {
-                        _authResult.trySend(
-                            AuthResult.Error(task.exception?.message ?: "Error desconocido al iniciar sesión")
-                        )
-                    }
-                }
+            try {
+                auth.signInWithEmailAndPassword(email, password).await()
+                _uid.value = auth.currentUser?.uid
+                _authResult.trySend(AuthResult.Success)
+            } catch (e: Exception) {
+                _authResult.trySend(AuthResult.Error(e.message ?: "Error desconocido al iniciar sesión"))
+            }
         }
     }
 
     /**
-     * Registra un nuevo usuario.
+     * Registra un nuevo usuario. Se crea la cuenta en Firebase Auth; si la creación es exitosa,
+     * se intenta enviar el correo de verificación. Cualquier error durante el envío del correo se captura
+     * y se comunica mediante AuthResult.Error.
      */
     fun register(email: String, password: String) {
         viewModelScope.launch {
-            auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
+            try {
+                val result = auth.createUserWithEmailAndPassword(email, password).await()
+                val user = result.user
+                if (user != null) {
+                    _uid.value = user.uid
+                    // Intenta enviar el correo de verificación.
+                    try {
+                        user.sendEmailVerification().await()
                         _authResult.trySend(AuthResult.Success)
-                        // Actualiza el UID luego del registro.
-                        _uid.value = auth.currentUser?.uid
-                    } else {
-                        _authResult.trySend(
-                            AuthResult.Error(task.exception?.message ?: "Error desconocido al registrar usuario")
-                        )
+                    } catch (ex: Exception) {
+                        _authResult.trySend(AuthResult.Error("Error al enviar el correo de verificación: ${ex.message}"))
                     }
+                } else {
+                    _authResult.trySend(AuthResult.Error("Error: Usuario nulo tras registro"))
                 }
+            } catch (e: Exception) {
+                _authResult.trySend(AuthResult.Error(e.message ?: "Error desconocido al registrar usuario"))
+            }
         }
     }
 
     /**
-     * Envía un correo de recuperación de contraseña.
+     * Envía un correo de recuperación de contraseña utilizando await para gestionar la tarea.
      */
     fun sendPasswordReset(email: String) {
         viewModelScope.launch {
-            auth.sendPasswordResetEmail(email)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        _authResult.trySend(AuthResult.Success)
-                    } else {
-                        _authResult.trySend(
-                            AuthResult.Error(task.exception?.message ?: "Error desconocido al enviar correo de recuperación")
-                        )
-                    }
-                }
+            try {
+                auth.sendPasswordResetEmail(email).await()
+                _authResult.trySend(AuthResult.Success)
+            } catch (e: Exception) {
+                _authResult.trySend(AuthResult.Error(e.message ?: "Error desconocido al enviar correo de recuperación"))
+            }
         }
     }
 }

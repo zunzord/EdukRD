@@ -5,6 +5,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.edukrd.app.ui.screens.*
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+
 
 @Composable
 fun NavGraph(
@@ -59,5 +62,15 @@ fun NavGraph(
         composable(Screen.Error.route) {
             ErrorScreen(navController)
         }
+
+        composable(
+            route = Screen.VerificationPending.route,
+            arguments = listOf(navArgument("email") { type = NavType.StringType; defaultValue = "" })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            VerificationPendingScreen(navController, email)
+        }
     }
+
 }
+
