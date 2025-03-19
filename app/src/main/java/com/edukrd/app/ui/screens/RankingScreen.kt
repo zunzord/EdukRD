@@ -1,74 +1,45 @@
 package com.edukrd.app.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.tasks.await
-import androidx.compose.ui.text.font.FontWeight
+import com.edukrd.app.viewmodel.RankingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RankingScreen(navController: NavController) {
-    val db = FirebaseFirestore.getInstance()
-    val auth = FirebaseAuth.getInstance()
-    val currentUserId = auth.currentUser?.uid
-
-    // 1. Especificar tipo explícitamente
-    var ranking by remember {
-        mutableStateOf<List<Triple<String, String, Int>>>(emptyList())
-    }
-    var currentUserRank by remember { mutableStateOf<Int?>(null) }
-    var currentUserCoins by remember { mutableStateOf(0) }
-    var loading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val rankingViewModel: RankingViewModel = hiltViewModel()
+    val ranking by rankingViewModel.ranking.collectAsState()
+    val currentUserRank by rankingViewModel.currentUserRank.collectAsState()
+    val currentUserCoins by rankingViewModel.currentUserCoins.collectAsState()
+    val loading by rankingViewModel.loading.collectAsState()
+    val error by rankingViewModel.error.collectAsState()
 
     val dominicanBlue = Color(0xFF1565C0)
     val darkBackground = Color(0xFF0D1B2A)
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
     LaunchedEffect(Unit) {
-        try {
-            val usersSnapshot = db.collection("users")
-                .orderBy("coins", Query.Direction.DESCENDING)
-                .limit(250)
-                .get()
-                .await()
-
-            val rankedUsers = usersSnapshot.documents.mapNotNull { doc ->
-                val name = doc.getString("name") ?: "Usuario Anónimo"
-                val coins = doc.getLong("coins")?.toInt() ?: 0
-                Triple(doc.id, name, coins)
-            }
-
-            ranking = rankedUsers
-
-            rankedUsers.forEachIndexed { index, (userId, _, coins) ->
-                if (userId == currentUserId) {
-                    currentUserRank = index + 1
-                    currentUserCoins = coins
-                }
-            }
-
-            loading = false
-        } catch (e: Exception) {
-            Log.e("RankingScreen", "Error al obtener ranking", e)
-            errorMessage = "Error al cargar el ranking"
-            loading = false
-        }
+        rankingViewModel.loadRanking()
     }
 
     Scaffold(
@@ -77,10 +48,14 @@ fun RankingScreen(navController: NavController) {
                 title = { Text("Ranking de Monedas", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, "Regresar", tint = Color.White)
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = Color.White
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = dominicanBlue)
+                colors = topAppBarColors(containerColor = dominicanBlue)
             )
         }
     ) { innerPadding ->
@@ -91,20 +66,26 @@ fun RankingScreen(navController: NavController) {
                 .padding(innerPadding)
         ) {
             when {
-                loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                errorMessage != null -> Text(
-                    errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                ranking.isEmpty() -> Text(
-                    "No hay datos de ranking.",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.White
-                )
+                loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                error != null -> {
+                    Text(
+                        text = error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                ranking.isEmpty() -> {
+                    Text(
+                        text = "No hay datos de ranking.",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.White
+                    )
+                }
                 else -> {
                     Column {
-                        currentUserRank?.let {
+                        currentUserRank?.let { rank ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -116,22 +97,23 @@ fun RankingScreen(navController: NavController) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "$it",
+                                        text = "$rank",
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         modifier = Modifier.padding(end = 16.dp)
                                     )
                                     Column {
+                                        // Buscamos el nombre del usuario actual en la lista (si existe)
+                                        val currentName = ranking.firstOrNull { it.first == currentUserId }?.second ?: "Tú"
                                         Text(
-                                            // 2. Corregir acceso al nombre
-                                            ranking.firstOrNull { user -> user.first == currentUserId }?.second ?: "Tú",
+                                            text = currentName,
                                             color = Color.White,
                                             fontSize = 20.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            "$currentUserCoins monedas",
+                                            text = "$currentUserCoins monedas",
                                             color = Color.White.copy(alpha = 0.8f),
                                             fontSize = 14.sp
                                         )
@@ -144,27 +126,26 @@ fun RankingScreen(navController: NavController) {
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp)
                         ) {
-                            itemsIndexed(ranking) { index, (_, name, coins) ->
+                            itemsIndexed(ranking) { index, entry ->
+                                val (userId, name, coins) = entry
                                 val medalIcon = when (index) {
-                                    0 -> Icons.Filled.EmojiEvents
-                                    1 -> Icons.Filled.EmojiEvents
-                                    2 -> Icons.Filled.EmojiEvents
-                                    3 -> Icons.Filled.EmojiEvents
+                                    0, 1, 2, 3 -> Icons.Filled.EmojiEvents
                                     else -> Icons.Filled.Star
                                 }
-
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.White.copy(alpha = 0.1f)
+                                    )
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(16.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "${index + 1}",
+                                            text = "${index + 1}",
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White,
@@ -186,19 +167,20 @@ fun RankingScreen(navController: NavController) {
                                             modifier = Modifier.padding(start = 16.dp)
                                         ) {
                                             Text(
-                                                name,
+                                                text = name,
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color.White
                                             )
                                             Text(
-                                                "$coins monedas",
+                                                text = "$coins monedas",
                                                 fontSize = 14.sp,
                                                 color = Color.White.copy(alpha = 0.8f)
                                             )
                                         }
                                     }
                                 }
+                                HorizontalDivider()
                             }
                         }
                     }

@@ -1,73 +1,87 @@
 package com.edukrd.app.ui.screens
 
-import android.util.Patterns
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.firebase.auth.FirebaseAuth
-import com.edukrd.app.utils.showToast
-import com.edukrd.app.utils.isInternetAvailable
+import com.edukrd.app.viewmodel.AuthResult
+import com.edukrd.app.viewmodel.AuthViewModel
+import kotlinx.coroutines.flow.collect
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
-    val auth = FirebaseAuth.getInstance()
+    val authViewModel: AuthViewModel = hiltViewModel()
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Recuperar contraseña", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(16.dp))
+    var email by remember { mutableStateOf("") }
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it.trim() },
-            label = { Text("Correo electrónico") }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = {
-            when {
-                email.isEmpty() -> {
-                    showToast(context, "Ingrese un correo válido")
+    // Escucha el flujo de resultados de autenticación para la acción de envío de correo de recuperación.
+    LaunchedEffect(Unit) {
+        authViewModel.authResult.collect { result ->
+            when (result) {
+                is AuthResult.Success -> {
+                    Toast.makeText(
+                        context,
+                        "Correo de recuperación enviado",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    navController.navigate("login") {
+                        popUpTo("forgot_password") { inclusive = true }
+                    }
                 }
-                !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
-                    showToast(context, "El formato del correo no es válido")
-                }
-                !isInternetAvailable(context) -> {  // 🔹 Verifica conexión antes de continuar
-                    showToast(context, "Sin conexión a Internet. Intente nuevamente.")
-                }
-                else -> {
-                    auth.sendPasswordResetEmail(email)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                showToast(context, "Correo de recuperación enviado")
-                                navController.navigate("login") {
-                                    popUpTo("forgot_password") { inclusive = true }
-                                }
-                            } else {
-                                showToast(context, "Error: ${task.exception?.message}")
-                            }
-                        }
+                is AuthResult.Error -> {
+                    Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
                 }
             }
-        }) {
-            Text(text = "Enviar correo")
         }
+    }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextButton(onClick = { navController.navigate("login") }) {
-            Text(text = "Volver al login")
+    Scaffold { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "Recuperar contraseña", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it.trim() },
+                label = { Text("Correo electrónico") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    if (email.isEmpty()) {
+                        Toast.makeText(context, "Ingrese un correo válido", Toast.LENGTH_LONG).show()
+                    } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                        Toast.makeText(context, "El formato del correo no es válido", Toast.LENGTH_LONG).show()
+                    } else {
+                        authViewModel.sendPasswordReset(email)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Enviar correo")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = { navController.navigate("login") }) {
+                Text("Volver al login")
+            }
         }
     }
 }

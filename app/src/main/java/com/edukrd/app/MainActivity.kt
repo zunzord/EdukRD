@@ -3,46 +3,42 @@ package com.edukrd.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.rememberNavController
 import com.edukrd.app.navigation.NavGraph
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.launch
+import com.edukrd.app.ui.theme.EdukRDTheme
+import com.edukrd.app.viewmodel.AuthViewModel
+import com.edukrd.app.viewmodel.ThemeViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContent {
+            // Inyectamos ThemeViewModel y AuthViewModel
+            val themeViewModel: ThemeViewModel = hiltViewModel()
+            val authViewModel: AuthViewModel = hiltViewModel()
 
-        val auth = FirebaseAuth.getInstance()
-        val db = FirebaseFirestore.getInstance()
-        val currentUser = auth.currentUser
+            // Observamos el tema y la sesión de forma reactiva
+            val themePreference by themeViewModel.themePreference.collectAsState()
+            val uid by authViewModel.uid.collectAsState()
 
-        var startDestination = "login"
+            // Determinamos la pantalla inicial según si hay sesión activa
+            val startDestination = if (uid != null) "home" else "login"
 
-        if (currentUser != null && currentUser.isEmailVerified) {
-            val userId = currentUser.uid
-            lifecycleScope.launch {
-                db.collection("users").document(userId).get()
-                    .addOnSuccessListener { document ->
-                        startDestination = if (document.exists()) "home" else "error_screen"
-                        setContent {
-                            val navController = rememberNavController()
-                            NavGraph(navController = navController, startDestination = startDestination)
-                        }
-                    }
-                    .addOnFailureListener {
-                        startDestination = "error_screen"
-                        setContent {
-                            val navController = rememberNavController()
-                            NavGraph(navController = navController, startDestination = startDestination)
-                        }
-                    }
-            }
-        } else {
-            setContent {
+            // Aplicamos el tema según el valor actualizado de themePreference
+            EdukRDTheme(darkTheme = (themePreference == "dark")) {
                 val navController = rememberNavController()
-                NavGraph(navController = navController, startDestination = startDestination)
+
+                // Pasamos la misma instancia de ThemeViewModel a NavGraph
+                NavGraph(
+                    navController = navController,
+                    startDestination = startDestination,
+                    themeViewModel = themeViewModel
+                )
             }
         }
     }

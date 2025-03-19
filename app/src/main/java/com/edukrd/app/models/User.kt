@@ -18,5 +18,8 @@ data class User(
 
     // Campos nuevos para notificaciones
     val notificationsEnabled: Boolean = false,
-    val notificationFrequency: String = "Diaria" // "Diaria", "Semanal", "Mensual"
+    val notificationFrequency: String = "Diaria", // "Diaria", "Semanal", "Mensual"
+
+    // Preferencia de tema (light u dark)
+    val themePreference: String = "light"
 )

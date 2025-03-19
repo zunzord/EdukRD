@@ -1,145 +1,208 @@
 package com.edukrd.app.ui.screens
 
-import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack // Usamos Icons.Filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.edukrd.app.models.Course
-import com.edukrd.app.navigation.AppScreen
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import coil.request.ImageRequest
+import coil.size.Size
+import com.edukrd.app.R
+import com.edukrd.app.viewmodel.CourseViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseScreen(navController: NavController, courseId: String) {
-    val dominicanBlue = Color(0xFF1565C0)
-    val db = FirebaseFirestore.getInstance()
-    val auth = FirebaseAuth.getInstance()
-    val userId = auth.currentUser?.uid
-
-    var course by remember { mutableStateOf<Course?>(null) }
-    var contentList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val courseViewModel: CourseViewModel = hiltViewModel()
+    val loading by courseViewModel.loading.collectAsState()
+    val error by courseViewModel.error.collectAsState()
+    val selectedCourse by courseViewModel.selectedCourse.collectAsState()
+    val courseContent by courseViewModel.courseContent.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(courseId) {
-        try {
-            val courseDoc = db.collection("courses").document(courseId).get().await()
-            if (courseDoc.exists()) {
-                course = courseDoc.toObject(Course::class.java)?.copy(id = courseId)
-
-                val contentSnapshot = db.collection("courses")
-                    .document(courseId)
-                    .collection("content")
-                    .orderBy("order")
-                    .get()
-                    .await()
-
-                contentList = contentSnapshot.documents.mapNotNull { it.data }
-            } else {
-                errorMessage = "Curso no encontrado"
-            }
-            loading = false
-        } catch (e: Exception) {
-            Log.e("CourseScreen", "Error al obtener el curso", e)
-            errorMessage = "Error al cargar el curso"
-            loading = false
-        }
+        courseViewModel.loadCourseById(courseId)
     }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.padding(16.dp),
-                containerColor = dominicanBlue
-            ) {
-                Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Volver")
-            }
+        topBar = {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* futuro: sistema de puntuación */ }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Opciones"
+                        )
+                    }
+                }
+            )
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (loading) {
-                CircularProgressIndicator()
-            } else if (errorMessage != null) {
-                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
-            } else {
-                course?.let {
-                    Text(
-                        text = it.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = dominicanBlue
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = it.description, style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    LazyColumn {
-                        items(contentList) { page ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    AsyncImage(
-                                        model = page["imageUrl"] as? String,
-                                        contentDescription = "Imagen del curso",
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = page["text"] as? String ?: "Sin contenido",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            }
-                        }
-
-
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = {
-                                    if (userId != null) {
-                                        navController.navigate(
-                                            AppScreen.Exam.createRoute(userId, courseId)
-                                        )
-                                    } else {
-                                        Log.e("CourseScreen", "Error: Usuario no autenticado")
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = userId != null,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = dominicanBlue,
-                                    contentColor = Color.White
+    ) { innerPadding ->
+        when {
+            loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = error!!, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            selectedCourse == null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Curso no encontrado", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    item {
+                        val mainImageUrl = selectedCourse!!.imageUrl
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 200.dp, max = 300.dp)
+                        ) {
+                            if (!mainImageUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(mainImageUrl)
+                                        .crossfade(true)
+                                        .size(500, 300)
+                                        .build(),
+                                    contentDescription = "Imagen principal",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(id = R.drawable.ic_course),
+                                    error = painterResource(id = R.drawable.ic_course)
                                 )
-                            ) {
-                                Text(text = "Tomar Examen")
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_course),
+                                    contentDescription = "Fallback",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
                             }
                         }
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = selectedCourse!!.title,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = selectedCourse!!.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
+
+                    items(courseContent) { page ->
+                        MinimalCourseContentItem(page = page)
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { navController.navigate("exam/$courseId") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "Tomar Examen")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MinimalCourseContentItem(page: Map<String, Any>) {
+    val context = LocalContext.current
+    val imageUrl = page["imageUrl"] as? String ?: ""
+    val textContent = page["text"] as? String ?: "Sin contenido"
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    ) {
+        if (imageUrl.isNotEmpty()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .crossfade(true)
+                    // Solicitamos dimensiones adecuadas en función del diseño, por ejemplo 500x300
+                    .size(500, 300)
+                    .build(),
+                contentDescription = "Imagen del contenido",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 150.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.ic_course),
+                error = painterResource(id = R.drawable.ic_course)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        Text(
+            text = textContent,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }

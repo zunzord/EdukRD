@@ -8,5 +8,7 @@ data class Course(
     val totalPages: Int = 0,
     val isPublished: Boolean = false,
     val content: List<Map<String, Any>> = emptyList(),
-    val medalla: String = ""
+    val medalla: String = "",
+    val recompenza: Int = 0,
+    val recompenzaExtra: Int = 0
 )

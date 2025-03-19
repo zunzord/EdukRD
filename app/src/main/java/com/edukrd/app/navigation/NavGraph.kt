@@ -6,39 +6,41 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.edukrd.app.ui.screens.*
 
-sealed class AppScreen(val route: String) {
-    object Login : AppScreen("login")
-    object Register : AppScreen("register")
-    object ForgotPassword : AppScreen("forgot_password")
-    object Home : AppScreen("home")
-    object Settings : AppScreen("settings")
-    object Store : AppScreen("store") // <-- Nueva ruta para StoreScreen
-    object Medals : AppScreen("medals")
-    object Ranking : AppScreen("ranking")
-    object Course : AppScreen("course/{courseId}") {
-        fun createRoute(courseId: String) = "course/$courseId"
-    }
-    object Exam : AppScreen("exam/{userId}/{courseId}") {
-        fun createRoute(userId: String, courseId: String) = "exam/$userId/$courseId"
-    }
-    object Error : AppScreen("error_screen")
-}
-
 @Composable
-fun NavGraph(navController: NavHostController, startDestination: String) {
+fun NavGraph(
+    navController: NavHostController,
+    startDestination: String,
+    themeViewModel: com.edukrd.app.viewmodel.ThemeViewModel // Recibe el ThemeViewModel global
+) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable(AppScreen.Login.route) { LoginScreen(navController) }
-        composable(AppScreen.Register.route) { RegisterScreen(navController) }
-        composable(AppScreen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
-        composable(AppScreen.Home.route) { MainHomeScreen(navController) }
-        composable(AppScreen.Settings.route) { SettingsScreen(navController) }
-        composable(AppScreen.Store.route) { StoreScreen(navController) } // Navegación a StoreScreen
-        composable(AppScreen.Medals.route) { MedalsScreen(navController) }
-        composable(AppScreen.Ranking.route) { RankingScreen(navController) }
-        composable(AppScreen.Course.route) { backStackEntry ->
+        composable(Screen.Login.route) {
+            LoginScreen(navController)
+        }
+        composable(Screen.Register.route) {
+            RegisterScreen(navController)
+        }
+        composable(Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(navController)
+        }
+        composable(Screen.Home.route) {
+            HomeScreen(navController)
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController, themeViewModel)
+        }
+        composable(Screen.Store.route) {
+            StoreScreen(navController)
+        }
+        composable(Screen.Medals.route) {
+            MedalsScreen(navController)
+        }
+        composable(Screen.Ranking.route) {
+            RankingScreen(navController)
+        }
+        composable(Screen.Course.route) { backStackEntry ->
             val courseId = backStackEntry.arguments?.getString("courseId")
             if (courseId.isNullOrEmpty()) {
                 ErrorScreen(navController)
@@ -46,15 +48,16 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                 CourseScreen(navController, courseId)
             }
         }
-        composable(AppScreen.Exam.route) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId")
+        composable(Screen.Exam.route) { backStackEntry ->
             val courseId = backStackEntry.arguments?.getString("courseId")
-            if (userId.isNullOrEmpty() || courseId.isNullOrEmpty()) {
+            if (courseId.isNullOrEmpty()) {
                 ErrorScreen(navController)
             } else {
-                ExamScreen(navController, userId, courseId)
+                ExamScreen(navController, courseId)
             }
         }
-        composable(AppScreen.Error.route) { ErrorScreen(navController) }
+        composable(Screen.Error.route) {
+            ErrorScreen(navController)
+        }
     }
 }
