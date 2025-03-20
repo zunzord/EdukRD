@@ -57,7 +57,9 @@ fun RegisterScreen(navController: NavController) {
                         createdAt = com.google.firebase.Timestamp.now(),
                         notificationsEnabled = false,
                         notificationFrequency = "Diaria",
-                        themePreference = themePreference
+                        themePreference = themePreference,
+                        // Inicializamos el campo primerAcceso en true para mostrar Onboarding
+                        primerAcceso = true
                     )
                     // Actualiza la información del usuario en Firestore a través del UserViewModel
                     userViewModel.updateCurrentUserData(newUser) { updateSuccess ->

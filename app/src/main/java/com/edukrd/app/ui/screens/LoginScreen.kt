@@ -14,38 +14,51 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.edukrd.app.viewmodel.AuthResult
 import com.edukrd.app.viewmodel.AuthViewModel
+import com.edukrd.app.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
     val authViewModel: AuthViewModel = hiltViewModel()
+    val userViewModel: UserViewModel = hiltViewModel()
     val context = LocalContext.current
 
-    // Estados para email, contraseña, carga y mensajes de error
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Recoger los resultados de autenticación
+    // Observamos el estado de usuario; se actualizará tras loadCurrentUserData()
+    val userData by userViewModel.userData.collectAsState()
+
     LaunchedEffect(authViewModel) {
         authViewModel.authResult.collect { result ->
             when (result) {
                 is AuthResult.Success -> {
-                    // Obtener el usuario actual y verificar si el correo está verificado
+                    // Verificar si el correo está verificado
                     val firebaseUser = FirebaseAuth.getInstance().currentUser
                     if (firebaseUser != null && !firebaseUser.isEmailVerified) {
-                        // Si el correo no está verificado, cerrar sesión y navegar a pantalla de verificación pendiente
                         FirebaseAuth.getInstance().signOut()
-                        // Navegar a la pantalla "verification_pending" (asegúrate de tener esta ruta en tu NavGraph)
                         navController.navigate("verification_pending") {
                             popUpTo("login") { inclusive = true }
                         }
                     } else {
-                        // Si está verificado, navegar a la pantalla Home
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
+                        // Si el correo está verificado, cargamos los datos del usuario.
+                        userViewModel.loadCurrentUserData()
+                        // Esperamos un breve lapso para que userData se actualice
+                        // (podríamos mejorar esto con un estado que indique "datos listos")
+                        kotlinx.coroutines.delay(500)
+                        if (userData?.primerAcceso == true) {
+                            // Si es el primer acceso, se muestra el onboarding.
+                            navController.navigate("onboarding") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        } else {
+                            // De lo contrario, se navega a HomeScreen.
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
                         }
                     }
                     isLoading = false

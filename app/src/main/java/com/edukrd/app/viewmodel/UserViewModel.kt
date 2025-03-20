@@ -7,10 +7,12 @@ import com.edukrd.app.models.User
 import com.edukrd.app.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
@@ -19,6 +21,8 @@ class UserViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
+
+    private val TAG = "UserViewModel"
 
     // Estado para los datos del usuario
     private val _userData = MutableStateFlow<User?>(null)
@@ -40,7 +44,7 @@ class UserViewModel @Inject constructor(
             _loading.value = true
             val uid = auth.currentUser?.uid
             if (uid == null) {
-                // No hay usuario autenticado
+                Log.e(TAG, "No hay usuario autenticado")
                 _userData.value = null
                 _coins.value = 0
                 _loading.value = false
@@ -48,10 +52,17 @@ class UserViewModel @Inject constructor(
             }
             try {
                 val data = userRepository.getUserData(uid)
-                _userData.value = data
-                _coins.value = data?.coins ?: 0
+                if (data != null) {
+                    Log.d(TAG, "Datos del usuario cargados: $data")
+                    _userData.value = data
+                    _coins.value = data.coins
+                } else {
+                    Log.e(TAG, "No se encontraron datos para el usuario con UID: $uid")
+                    _userData.value = null
+                    _coins.value = 0
+                }
             } catch (e: Exception) {
-                Log.e("UserViewModel", "Error al cargar datos del usuario", e)
+                Log.e(TAG, "Error al cargar datos del usuario", e)
                 _userData.value = null
                 _coins.value = 0
             } finally {
@@ -62,8 +73,7 @@ class UserViewModel @Inject constructor(
 
     /**
      * Actualiza los datos del usuario actual en Firestore.
-     * Si el UID no está disponible de inmediato (por ejemplo, justo después del registro),
-     * espera hasta 5 segundos para obtenerlo.
+     * Si el UID no está disponible de inmediato, espera hasta 5 segundos para obtenerlo.
      *
      * @param updatedUser: Usuario con los datos actualizados.
      * @param onResult: Callback que indica el resultado de la operación (true/false).
@@ -72,7 +82,6 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             _loading.value = true
 
-            // Espera hasta que auth.currentUser esté disponible (máximo 5 segundos)
             val uid = withTimeoutOrNull(5000L) {
                 while (auth.currentUser?.uid == null) {
                     delay(100)
@@ -80,12 +89,12 @@ class UserViewModel @Inject constructor(
                 auth.currentUser?.uid
             }
             if (uid == null) {
+                Log.e(TAG, "No se obtuvo UID en el tiempo esperado")
                 onResult(false)
                 _loading.value = false
                 return@launch
             }
 
-            // Agregamos el campo createdAt para registrar la fecha de creación
             val updateMap = mapOf(
                 "name" to updatedUser.name,
                 "lastName" to updatedUser.lastName,
@@ -97,22 +106,51 @@ class UserViewModel @Inject constructor(
                 "notificationFrequency" to updatedUser.notificationFrequency,
                 "themePreference" to updatedUser.themePreference,
                 "coins" to updatedUser.coins,
-                "createdAt" to (updatedUser.createdAt as Any)
+                "primerAcceso" to updatedUser.primerAcceso,
+                "createdAt" to (updatedUser.createdAt ?: com.google.firebase.Timestamp.now())
             )
 
             try {
-                val success = userRepository.updateUserData(uid, updateMap)
+                // Ejecutamos la actualización en el contexto IO para evitar bloquear la UI
+                val success = withContext(Dispatchers.IO) {
+                    userRepository.updateUserData(uid, updateMap)
+                }
                 if (success) {
-                    // Actualiza el estado local si la operación fue exitosa
+                    Log.d(TAG, "Datos del usuario actualizados exitosamente")
                     _userData.value = updatedUser
                     _coins.value = updatedUser.coins
+                } else {
+                    Log.e(TAG, "Error en la actualización de datos para UID: $uid")
                 }
                 onResult(success)
             } catch (e: Exception) {
-                Log.e("UserViewModel", "Error al actualizar datos del usuario", e)
+                Log.e(TAG, "Excepción al actualizar datos del usuario", e)
                 onResult(false)
             } finally {
                 _loading.value = false
+            }
+        }
+    }
+
+    /**
+     * Actualiza el campo 'primerAcceso' del usuario actual en Firestore a false,
+     * indicando que el onboarding ya fue completado.
+     */
+    fun markOnboardingCompleted(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val currentUser = _userData.value
+            if (currentUser == null) {
+                Log.e(TAG, "No hay datos del usuario para marcar onboarding completado")
+                onResult(false)
+                return@launch
+            }
+            val updatedUser = currentUser.copy(primerAcceso = false)
+            updateCurrentUserData(updatedUser) { success ->
+                if (success) {
+                    Log.d(TAG, "Onboarding marcado como completado")
+                    _userData.value = updatedUser
+                }
+                onResult(success)
             }
         }
     }
