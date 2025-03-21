@@ -1,30 +1,31 @@
 package com.edukrd.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.edukrd.app.models.OnboardingPage
+import com.edukrd.app.navigation.Screen
 import com.edukrd.app.viewmodel.OnboardingViewModel
-import com.edukrd.app.viewmodel.UserViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalPagerApi::class)
+@OptIn(ExperimentalPagerApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
     navController: NavController,
-    onboardingViewModel: OnboardingViewModel = hiltViewModel(),
-    userViewModel: UserViewModel = hiltViewModel()
+    onboardingViewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val pages = listOf(
         OnboardingPage(
@@ -34,65 +35,72 @@ fun OnboardingScreen(
         ),
         OnboardingPage(
             title = "Aprende de forma interactiva",
-            description = "Accede a cursos, tutoriales y más contenido de calidad.",
+            description = "Accede a cursos diseñados para acompañarte.",
             imageResId = com.edukrd.app.R.drawable.onboarding_image2_round
         ),
         OnboardingPage(
             title = "Beneficios exclusivos",
-            description = "Gana monedas y accede a recompensas por tu aprendizaje.",
+            description = "Gana monedas, medallas y compite en el ranking.",
             imageResId = com.edukrd.app.R.drawable.onboarding_image3_round
         )
     )
+
     val pagerState = rememberPagerState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // Observe completion event
+    val completion by onboardingViewModel.complete.collectAsState(initial = null)
+    LaunchedEffect(completion) {
+        completion?.let { success ->
+            if (success) {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Onboarding.route) { inclusive = true }
+                }
+            } else {
+                Toast.makeText(
+                    context,
+                    "Error completando onboarding. Contacta soporte.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Box(
+            HorizontalPager(
+                count = pages.size,
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.75f)
-            ) {
-                HorizontalPager(
-                    count = pages.size,
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    OnboardingPageContent(page = pages[page])
-                }
+                    .weight(1f)
+            ) { page ->
+                OnboardingPageContent(page = pages[page])
             }
+
             HorizontalPagerIndicator(
                 pagerState = pagerState,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(16.dp)
             )
+
             val isLastPage = pagerState.currentPage == pages.lastIndex
             Button(
                 onClick = {
-                    if (isLastPage) {
-                        // Al finalizar el onboarding, se marca el campo primerAcceso como false
-                        userViewModel.markOnboardingCompleted { success ->
-                            if (success) {
-                                navController.navigate("home") {
-                                    popUpTo("onboarding") { inclusive = true }
-                                }
-                            }
-                        }
-                    } else {
-                        scope.launch {
-                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                        }
-                    }
+                    if (isLastPage) onboardingViewModel.completeOnboarding()
+                    else scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(text = if (isLastPage) "Bienvenido a EdukRD" else "Siguiente")
+                Text(if (isLastPage) "Bienvenido a EdukRD" else "Siguiente")
             }
         }
     }

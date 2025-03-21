@@ -7,13 +7,13 @@ import com.edukrd.app.models.User
 import com.edukrd.app.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,49 +22,53 @@ class UserViewModel @Inject constructor(
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
+    sealed class NavigationCommand {
+        object ToOnboarding : NavigationCommand()
+        object ToHome : NavigationCommand()
+        object ContactSupport : NavigationCommand()
+    }
+
     private val TAG = "UserViewModel"
 
-    // Estado para los datos del usuario
     private val _userData = MutableStateFlow<User?>(null)
     val userData: StateFlow<User?> = _userData
 
-    // Estado para el saldo de monedas
     private val _coins = MutableStateFlow(0)
     val coins: StateFlow<Int> = _coins
 
-    // Estado para el loading
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
+    private val _navigationCommand = Channel<NavigationCommand>(Channel.BUFFERED)
+    val navigationCommand = _navigationCommand.receiveAsFlow()
+
     /**
-     * Carga los datos del usuario actual (basado en auth.currentUser?.uid) y actualiza el saldo de monedas.
+     * Carga los datos del usuario actual y emite el comando de navegación apropiado.
      */
     fun loadCurrentUserData() {
         viewModelScope.launch {
             _loading.value = true
             val uid = auth.currentUser?.uid
-            if (uid == null) {
-                Log.e(TAG, "No hay usuario autenticado")
-                _userData.value = null
-                _coins.value = 0
+            if (uid.isNullOrBlank()) {
+                Log.e(TAG, "UID no disponible")
+                _navigationCommand.trySend(NavigationCommand.ContactSupport)
                 _loading.value = false
                 return@launch
             }
+
             try {
                 val data = userRepository.getUserData(uid)
-                if (data != null) {
-                    Log.d(TAG, "Datos del usuario cargados: $data")
-                    _userData.value = data
-                    _coins.value = data.coins
-                } else {
-                    Log.e(TAG, "No se encontraron datos para el usuario con UID: $uid")
-                    _userData.value = null
-                    _coins.value = 0
+                _userData.value = data
+                _coins.value = data?.coins ?: 0
+
+                when {
+                    data == null -> _navigationCommand.trySend(NavigationCommand.ContactSupport)
+                    data.primerAcceso -> _navigationCommand.trySend(NavigationCommand.ToOnboarding)
+                    else -> _navigationCommand.trySend(NavigationCommand.ToHome)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error al cargar datos del usuario", e)
-                _userData.value = null
-                _coins.value = 0
+                Log.e(TAG, "Error cargando datos del usuario", e)
+                _navigationCommand.trySend(NavigationCommand.ContactSupport)
             } finally {
                 _loading.value = false
             }
@@ -72,30 +76,48 @@ class UserViewModel @Inject constructor(
     }
 
     /**
-     * Actualiza los datos del usuario actual en Firestore.
-     * Si el UID no está disponible de inmediato, espera hasta 5 segundos para obtenerlo.
-     *
-     * @param updatedUser: Usuario con los datos actualizados.
-     * @param onResult: Callback que indica el resultado de la operación (true/false).
+     * Marca primerAcceso = false luego de completar el onboarding.
+     */
+    fun markOnboardingCompleted(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _loading.value = true
+            val currentUser = _userData.value
+            if (currentUser == null) {
+                Log.e(TAG, "Usuario no cargado para marcar onboarding")
+                onResult(false)
+                _loading.value = false
+                return@launch
+            }
+            val updated = currentUser.copy(primerAcceso = false)
+            updateCurrentUserData(updated) { success ->
+                if (success) {
+                    _userData.value = updated
+                    _coins.value = updated.coins
+                }
+                onResult(success)
+                _loading.value = false
+            }
+        }
+    }
+
+    /**
+     * Crea o actualiza los datos del usuario en Firestore (merge) y actualiza el estado local.
      */
     fun updateCurrentUserData(updatedUser: User, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             _loading.value = true
-
             val uid = withTimeoutOrNull(5000L) {
-                while (auth.currentUser?.uid == null) {
-                    delay(100)
-                }
+                while (auth.currentUser?.uid == null) delay(100)
                 auth.currentUser?.uid
             }
-            if (uid == null) {
-                Log.e(TAG, "No se obtuvo UID en el tiempo esperado")
+            if (uid.isNullOrBlank()) {
+                Log.e(TAG, "UID no obtenido para actualización")
                 onResult(false)
                 _loading.value = false
                 return@launch
             }
 
-            val updateMap = mapOf(
+            val updateMap = mapOf<String, Any?>(
                 "name" to updatedUser.name,
                 "lastName" to updatedUser.lastName,
                 "birthDate" to updatedUser.birthDate,
@@ -107,50 +129,23 @@ class UserViewModel @Inject constructor(
                 "themePreference" to updatedUser.themePreference,
                 "coins" to updatedUser.coins,
                 "primerAcceso" to updatedUser.primerAcceso,
-                "createdAt" to (updatedUser.createdAt ?: com.google.firebase.Timestamp.now())
+                "createdAt" to updatedUser.createdAt
             )
 
             try {
-                // Ejecutamos la actualización en el contexto IO para evitar bloquear la UI
-                val success = withContext(Dispatchers.IO) {
-                    userRepository.updateUserData(uid, updateMap)
-                }
+                val success = userRepository.updateUserData(uid, updateMap)
                 if (success) {
-                    Log.d(TAG, "Datos del usuario actualizados exitosamente")
                     _userData.value = updatedUser
                     _coins.value = updatedUser.coins
                 } else {
-                    Log.e(TAG, "Error en la actualización de datos para UID: $uid")
+                    Log.e(TAG, "Fallo al actualizar datos para UID=$uid")
                 }
                 onResult(success)
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción al actualizar datos del usuario", e)
+                Log.e(TAG, "Excepción en updateCurrentUserData", e)
                 onResult(false)
             } finally {
                 _loading.value = false
-            }
-        }
-    }
-
-    /**
-     * Actualiza el campo 'primerAcceso' del usuario actual en Firestore a false,
-     * indicando que el onboarding ya fue completado.
-     */
-    fun markOnboardingCompleted(onResult: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            val currentUser = _userData.value
-            if (currentUser == null) {
-                Log.e(TAG, "No hay datos del usuario para marcar onboarding completado")
-                onResult(false)
-                return@launch
-            }
-            val updatedUser = currentUser.copy(primerAcceso = false)
-            updateCurrentUserData(updatedUser) { success ->
-                if (success) {
-                    Log.d(TAG, "Onboarding marcado como completado")
-                    _userData.value = updatedUser
-                }
-                onResult(success)
             }
         }
     }

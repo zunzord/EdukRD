@@ -22,62 +22,46 @@ class UserRepository @Inject constructor(
      */
     suspend fun getUserData(userId: String): User? {
         Log.d(TAG, "Iniciando obtención de datos para usuario: $userId")
-
         return try {
-            Log.d(TAG, "Consultando Firestore en colección 'users' documento '$userId'")
-            val document = firestore.collection("users").document(userId).get().await()
+            val document = firestore.collection("users")
+                .document(userId)
+                .get()
+                .await()
 
             if (document.exists()) {
-                Log.d(TAG, "Documento encontrado. Campos disponibles: ${document.data?.keys}")
-                Log.d(TAG, "Intentando conversión a objeto User...")
-
-                val user = document.toObject(User::class.java)
-                if (user == null) {
-                    Log.e(TAG, "Fallo en conversión. Datos crudos del documento:")
-                    Log.e(TAG, "${document.data}")
-                    Log.e(TAG, "Campos esperados en clase User: ${User::class.java.declaredFields.joinToString { it.name }}")
-                } else {
-                    Log.d(TAG, "Conversión exitosa: $user")
-                }
-                user
+                Log.d(TAG, "Documento encontrado. Datos: ${document.data}")
+                document.toObject(User::class.java)
             } else {
-                Log.e(TAG, "Documento no existe en Firestore")
+                Log.e(TAG, "Documento no existe para UID: $userId")
                 null
             }
+        } catch (e: FirebaseFirestoreException) {
+            Log.e(TAG, "Firestore error [${e.code}]: ${e.message}", e)
+            null
         } catch (e: Exception) {
-            Log.e(TAG, "Error en getUserData()", e)
-            when (e) {
-                is FirebaseFirestoreException -> {
-                    Log.e(TAG, "Error de Firestore [${e.code}]: ${e.message}")
-                    Log.e(TAG, "¿Problema de permisos? ${e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED}")
-                }
-            }
+            Log.e(TAG, "Error inesperado en getUserData()", e)
             null
         }
     }
 
     /**
-     * Crea o actualiza los datos del usuario en Firestore.
+     * Crea o actualiza los datos del usuario en Firestore usando merge.
      */
-    suspend fun updateUserData(userId: String, userData: Map<String, Any>): Boolean {
-        Log.d(TAG, "Iniciando actualización para usuario: $userId")
-        Log.d(TAG, "Datos a actualizar: ${userData.keys}")
-
+    suspend fun updateUserData(userId: String, userData: Map<String, Any?>): Boolean {
+        Log.d(TAG, "Iniciando actualización para usuario: $userId — Campos: ${userData.keys}")
         return try {
             firestore.collection("users")
                 .document(userId)
                 .set(userData, SetOptions.merge())
                 .await()
 
-            Log.d(TAG, "Actualización exitosa")
+            Log.d(TAG, "Actualización exitosa para UID: $userId")
             true
+        } catch (e: FirebaseFirestoreException) {
+            Log.e(TAG, "Firestore error [${e.code}]: ${e.message}", e)
+            false
         } catch (e: Exception) {
-            Log.e(TAG, "Error en updateUserData()", e)
-            when (e) {
-                is FirebaseFirestoreException -> {
-                    Log.e(TAG, "Error de Firestore [${e.code}]: ${e.message}")
-                }
-            }
+            Log.e(TAG, "Error inesperado en updateUserData()", e)
             false
         }
     }

@@ -7,19 +7,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.edukrd.app.ui.screens.CourseScreen
-import com.edukrd.app.ui.screens.ErrorScreen
-import com.edukrd.app.ui.screens.ExamScreen
-import com.edukrd.app.ui.screens.ForgotPasswordScreen
-import com.edukrd.app.ui.screens.HomeScreen
-import com.edukrd.app.ui.screens.LoginScreen
-import com.edukrd.app.ui.screens.MedalsScreen
-import com.edukrd.app.ui.screens.OnboardingScreen
-import com.edukrd.app.ui.screens.RankingScreen
-import com.edukrd.app.ui.screens.RegisterScreen
-import com.edukrd.app.ui.screens.SettingsScreen
-import com.edukrd.app.ui.screens.StoreScreen
-import com.edukrd.app.ui.screens.VerificationPendingScreen
+import com.edukrd.app.navigation.Screen
+import com.edukrd.app.ui.screens.*
 import com.edukrd.app.viewmodel.OnboardingViewModel
 import com.edukrd.app.viewmodel.ThemeViewModel
 
@@ -36,7 +25,7 @@ fun NavGraph(
         composable(Screen.Register.route) {
             RegisterScreen(navController)
         }
-        composable(route = "onboarding") {
+        composable(Screen.Onboarding.route) {
             val onboardingViewModel: OnboardingViewModel = hiltViewModel()
             OnboardingScreen(navController = navController, onboardingViewModel = onboardingViewModel)
         }
@@ -60,19 +49,13 @@ fun NavGraph(
         }
         composable(Screen.Course.route) { backStackEntry ->
             val courseId = backStackEntry.arguments?.getString("courseId")
-            if (courseId.isNullOrEmpty()) {
-                ErrorScreen(navController)
-            } else {
-                CourseScreen(navController, courseId)
-            }
+            if (courseId.isNullOrEmpty()) ErrorScreen(navController)
+            else CourseScreen(navController, courseId)
         }
         composable(Screen.Exam.route) { backStackEntry ->
             val courseId = backStackEntry.arguments?.getString("courseId")
-            if (courseId.isNullOrEmpty()) {
-                ErrorScreen(navController)
-            } else {
-                ExamScreen(navController, courseId)
-            }
+            if (courseId.isNullOrEmpty()) ErrorScreen(navController)
+            else ExamScreen(navController, courseId)
         }
         composable(Screen.Error.route) {
             ErrorScreen(navController)

@@ -12,11 +12,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.edukrd.app.navigation.Screen
 import com.edukrd.app.viewmodel.ExamViewModel
 import com.edukrd.app.viewmodel.ExamState
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,32 +31,11 @@ fun ExamScreen(
     val error by examViewModel.error.collectAsState()
     val submitResult by examViewModel.submitResult.collectAsState()
 
-    // Para mostrar/ocultar el diálogo de resultados
-    var showResultDialog by remember { mutableStateOf(false) }
-    var userPassed by remember { mutableStateOf(false) }
-    var userScore by remember { mutableStateOf(0) }
-
-    // Mapa para almacenar las respuestas: key = questionId, value = índice de respuesta seleccionada
     val selectedAnswers = remember { mutableStateMapOf<String, Int>() }
+    val scope = rememberCoroutineScope()
 
-    // Cargar los datos del examen al iniciar
     LaunchedEffect(courseId) {
         examViewModel.loadExamData(courseId)
-    }
-
-    // Manejar el resultado del envío del examen
-    LaunchedEffect(submitResult) {
-        submitResult?.let { (success, message) ->
-            if (!success) {
-                // En caso de error, mostramos un Toast
-                Toast.makeText(
-                    navController.context,
-                    "Error: $message",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            // Si es success, ya mostramos un AlertDialog, así que no navegamos directamente aquí
-        }
     }
 
     Scaffold(
@@ -64,72 +44,47 @@ fun ExamScreen(
                 title = { Text("Examen") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when {
-                loading -> {
-                    CircularProgressIndicator()
-                }
-                error != null -> {
-                    Text(
-                        text = error!!,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                examState == null -> {
-                    Text(
-                        text = "No se encontró examen para este curso.",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                loading -> CircularProgressIndicator()
+                error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
+                examState == null -> Text("No se encontró examen para este curso.", color = MaterialTheme.colorScheme.error)
                 else -> {
                     val exam: ExamState = examState!!
-                    // En vez de mostrar el courseId, ponemos un título genérico
-                    Text(
-                        text = "Preguntas",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    Text("Preguntas", style = MaterialTheme.typography.titleLarge)
 
-                    // Lista minimalista de preguntas
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(exam.questions) { question ->
                             val questionId = question["questionId"] as? String ?: return@items
-                            val questionText = question["question"] as? String ?: "Pregunta sin texto"
+                            val questionText = question["question"] as? String ?: ""
                             val options = question["answers"] as? List<String> ?: emptyList()
 
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = questionText,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+                            Column {
+                                Text(questionText, style = MaterialTheme.typography.bodyLarge)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 options.forEachIndexed { index, answer ->
-                                    val isSelected = selectedAnswers[questionId] == index
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         RadioButton(
-                                            selected = isSelected,
+                                            selected = selectedAnswers[questionId] == index,
                                             onClick = { selectedAnswers[questionId] = index }
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(text = answer)
+                                        Text(answer)
                                     }
                                 }
                             }
@@ -137,88 +92,51 @@ fun ExamScreen(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    val isFinishEnabled = (selectedAnswers.size == exam.questions.size)
+                    val canSubmit = selectedAnswers.size == exam.questions.size
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Button(
-                            onClick = { navController.popBackStack() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text("Volver")
-                        }
+                        Button(onClick = { navController.popBackStack() }) { Text("Volver") }
                         Button(
                             onClick = {
-                                // Calcular puntuación
-                                val correctCount = exam.questions.count { question ->
-                                    val qId = question["questionId"] as? String ?: ""
-                                    val correctOption =
-                                        (question["correctOption"] as? Long)?.toInt() ?: -1
+                                val correctCount = exam.questions.count { q ->
+                                    val qId = q["questionId"] as? String ?: ""
+                                    val correctOption = (q["correctOption"] as? Long)?.toInt() ?: -1
                                     selectedAnswers[qId] == correctOption
                                 }
                                 val finalScore = (correctCount.toDouble() / exam.questions.size * 100).toInt()
                                 val passed = finalScore >= exam.passingScore
-
-                                // Guardamos estado para mostrar el diálogo
-                                userPassed = passed
-                                userScore = finalScore
-                                showResultDialog = true
-
-                                // Se envía el resultado al repositorio
                                 examViewModel.submitExamResult(courseId, finalScore, passed)
                             },
-                            enabled = isFinishEnabled,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiary
-                            )
-                        ) {
-                            Text("Finalizar")
-                        }
+                            enabled = canSubmit
+                        ) { Text("Finalizar") }
                     }
                 }
             }
         }
     }
 
-    // Diálogo de resultado
-    if (showResultDialog) {
+    submitResult?.let { (success, message) ->
         AlertDialog(
-            onDismissRequest = { /* Evitamos cerrar con click fuera */ },
-            // Aquí establecemos el color translúcido azul
-            containerColor = Color(0xFF1565C0).copy(alpha = 0.8f),
-            textContentColor = Color.White,  // Para que el texto se vea en blanco
-            titleContentColor = Color.White,
-            title = {
-                Text("Resultado del Examen")
-            },
-            text = {
-                // Aplicamos la tipografía Roboto solamente dentro del diálogo
-                MaterialTheme(
-
-                ) {
-                    if (userPassed) {
-                        Text("¡Felicidades! Aprobaste con un $userScore%.")
-                    } else {
-                        Text("Obtuviste un $userScore%. ¡Inténtalo nuevamente!")
-                    }
-                }
-            },
+            onDismissRequest = { examViewModel.resetSubmitResult() },
+            title = { Text(if (success) "¡Aprobado!" else "Resultado") },
+            text = { Text(message) },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showResultDialog = false
-                        navController.navigate("home") {
-                            popUpTo("home") { inclusive = true }
+                Button(onClick = {
+                    examViewModel.resetSubmitResult()
+                    if (success) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     }
-                ) {
+                }) {
                     Text("Aceptar")
                 }
-            }
+            },
+            containerColor = if (success) Color(0xFF4CAF50) else Color(0xFFF44336),
+            titleContentColor = Color.White,
+            textContentColor = Color.White
         )
     }
 }

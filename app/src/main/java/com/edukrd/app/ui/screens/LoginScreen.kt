@@ -1,5 +1,6 @@
 package com.edukrd.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -29,14 +30,31 @@ fun LoginScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Observamos el estado de usuario; se actualizará tras loadCurrentUserData()
-    val userData by userViewModel.userData.collectAsState()
+    // Observe navigation commands from UserViewModel
+    val navigationCommand by userViewModel.navigationCommand.collectAsState(initial = null)
+
+    LaunchedEffect(navigationCommand) {
+        when (navigationCommand) {
+            UserViewModel.NavigationCommand.ToOnboarding -> navController.navigate("onboarding") {
+                popUpTo("login") { inclusive = true }
+            }
+            UserViewModel.NavigationCommand.ToHome -> navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+            UserViewModel.NavigationCommand.ContactSupport -> {
+                Toast.makeText(context, "Error cargando perfil. Contacta soporte.", Toast.LENGTH_LONG).show()
+                navController.navigate("login") {
+                    popUpTo("login") { inclusive = true }
+                }
+            }
+            null -> Unit
+        }
+    }
 
     LaunchedEffect(authViewModel) {
         authViewModel.authResult.collect { result ->
             when (result) {
                 is AuthResult.Success -> {
-                    // Verificar si el correo está verificado
                     val firebaseUser = FirebaseAuth.getInstance().currentUser
                     if (firebaseUser != null && !firebaseUser.isEmailVerified) {
                         FirebaseAuth.getInstance().signOut()
@@ -44,22 +62,7 @@ fun LoginScreen(navController: NavController) {
                             popUpTo("login") { inclusive = true }
                         }
                     } else {
-                        // Si el correo está verificado, cargamos los datos del usuario.
                         userViewModel.loadCurrentUserData()
-                        // Esperamos un breve lapso para que userData se actualice
-                        // (podríamos mejorar esto con un estado que indique "datos listos")
-                        kotlinx.coroutines.delay(500)
-                        if (userData?.primerAcceso == true) {
-                            // Si es el primer acceso, se muestra el onboarding.
-                            navController.navigate("onboarding") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        } else {
-                            // De lo contrario, se navega a HomeScreen.
-                            navController.navigate("home") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        }
                     }
                     isLoading = false
                 }
@@ -72,11 +75,7 @@ fun LoginScreen(navController: NavController) {
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Iniciar Sesión") }
-            )
-        }
+        topBar = { TopAppBar(title = { Text("Iniciar Sesión") }) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -86,10 +85,7 @@ fun LoginScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Iniciar Sesión",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            Text("Iniciar Sesión", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = email,
@@ -109,16 +105,13 @@ fun LoginScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             if (errorMessage.isNotEmpty()) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error
-                )
+                Text(errorMessage, color = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(8.dp))
             }
             Button(
                 onClick = {
-                    if (email.isEmpty() || password.isEmpty()) {
-                        errorMessage = "Por favor, ingresa el correo y la contraseña."
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Por favor ingresa correo y contraseña."
                     } else {
                         isLoading = true
                         errorMessage = ""
@@ -128,14 +121,8 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Ingresar")
-                }
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                else Text("Ingresar")
             }
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = { navController.navigate("forgot_password") }) {
