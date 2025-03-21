@@ -49,6 +49,7 @@ fun HomeScreen(navController: NavController) {
     val userLoading by userViewModel.loading.collectAsState()
     val courses by courseViewModel.courses.collectAsState()
     val passedCourseIds by courseViewModel.passedCourseIds.collectAsState()
+    val coinRewards by courseViewModel.coinRewards.collectAsState()
     val coursesLoading by courseViewModel.loading.collectAsState()
     val courseError by courseViewModel.error.collectAsState()
 
@@ -72,6 +73,7 @@ fun HomeScreen(navController: NavController) {
                 FullScreenCourseDetailSheet(
                     course = course,
                     isCompleted = passedCourseIds.contains(course.id),
+                    coinReward = coinRewards[course.id] ?: 0,
                     onClose = {
                         coroutineScope.launch { sheetState.hide() }
                         selectedCourse = null
@@ -229,29 +231,12 @@ fun BannerSection(
             .fillMaxWidth()
             .height(250.dp)
     ) {
-        if (bannerUrl.isNotBlank()) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(bannerUrl)
-                    .crossfade(true)
-                    .size(800, 400)
-                    .placeholder(R.drawable.ic_course)
-                    .error(R.drawable.ic_course)
-                    .build(),
-                contentDescription = "Banner",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Image(
-                painter = painterResource(id = R.drawable.ic_course),
-                contentDescription = "Fallback",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.fondo),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -412,6 +397,7 @@ fun ExperienceCard(
 fun FullScreenCourseDetailSheet(
     course: Course,
     isCompleted: Boolean,
+    coinReward: Int,
     onClose: () -> Unit,
     onTakeCourse: () -> Unit
 ) {
@@ -474,9 +460,10 @@ fun FullScreenCourseDetailSheet(
             Spacer(modifier = Modifier.height(8.dp))
             val reward = if (!isCompleted) course.recompenza else course.recompenzaExtra
             Text(
-                text = "${reward ?: 0} coins",
+                text = "$coinReward coins",
                 style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.primary)
             )
+
             Spacer(modifier = Modifier.height(8.dp))
             Row {
                 repeat(5) {

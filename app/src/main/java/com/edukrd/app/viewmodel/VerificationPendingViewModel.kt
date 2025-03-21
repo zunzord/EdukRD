@@ -42,7 +42,7 @@ class VerificationPendingViewModel @Inject constructor(
                 if (task.isSuccessful) {
                     _resendState.value = ResendState.Success("Correo reenviado con éxito")
                 } else {
-                    _resendState.value = ResendState.Error("Error al reenviar el correo")
+                    _resendState.value = ResendState.Error("El correo anterior fue enviado correctamente. Recuerda revizar en la bandeja de spam, o si estas verificando la cuenta de correo correcta. Si después de validar, sigues sin encontrar el correo, espera 1 minuto y pulsa reenviar nuevamente.")
                 }
             }
         }
