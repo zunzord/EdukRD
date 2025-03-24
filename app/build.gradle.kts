@@ -50,17 +50,18 @@ android {
 
     composeOptions {
         // La versión del compilador de Compose debe ser compatible con el BOM usado
-        kotlinCompilerExtensionVersion = "1.4.0"
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
 }
 
 dependencies {
     // BOM para unificar las versiones de todas las librerías de Compose
     implementation(platform("androidx.compose:compose-bom:2025.03.00"))
+    implementation("androidx.compose.foundation:foundation")
 
     // Dependencias básicas de Compose
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
+
     // La librería Material (versión antigua) se usa para componentes como ModalBottomSheetLayout
     implementation("androidx.compose.material:material")
     // Material3 para componentes modernos
@@ -71,6 +72,12 @@ dependencies {
 
     //Fonts Google
     implementation("androidx.compose.ui:ui-text-google-fonts:1.3.0")
+
+    // Shimmer placeholder for Compose
+
+
+
+
 
 
 

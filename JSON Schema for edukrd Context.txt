@@ -1,0 +1,111 @@
+## JSON Schema for Android App Context
+
+This JSON Schema defines the structure for capturing your Android project's architecture, navigation, models, repositories, screens, viewModels, and file structure.
+
+```jsonschema
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AndroidAppContext",
+  "type": "object",
+  "properties": {
+    "appName": {"type": "string"},
+    "architecture": {
+      "type": "object",
+      "properties": {
+        "pattern": {"type": "string"},
+        "modules": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["pattern", "modules"]
+    },
+    "navigation": {
+      "type": "array",
+      "items": {"type": "object", "properties": {"route": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}}, "required": ["route"]}
+    },
+    "models": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"type": "string"}}},
+    "repositories": {"type": "array", "items": {"type": "string"}},
+    "screens": {"type": "array", "items": {"type": "string"}},
+    "viewModels": {"type": "array", "items": {"type": "string"}},
+    "fileStructure": {"type": "array", "items": {"type": "string"}}
+  },
+  "required": ["appName", "architecture", "navigation", "models", "repositories", "screens", "viewModels", "fileStructure"]
+}
+```
+
+## Initial Context JSON Instance
+
+```json
+{
+  "appName": "Edukrd",
+  "architecture": {
+    "pattern": "MVVM + Clean Architecture",
+    "modules": ["app", "functions", "gradle"]
+  },
+  "navigation": [],
+  "models": {
+    "Course": {},
+    "OnboardingPage": {},
+    "StoreItem": {},
+    "User": {},
+    "UserProgress": {}
+  },
+  "repositories": [
+    "CoinRepository", "CourseRepository", "ExamRepository", "StoreRepository", "UserRepository"
+  ],
+  "screens": [
+    "CourseScreen", "ErrorScreen", "ExamScreen", "ForgotPasswordScreen", "HomeScreen", "LoginScreen", "MedalsScreen", "OnboardingScreen", "RankingScreen", "RegisterScreen", "SettingsScreen", "StoreScreen", "VerificationPendingScreen"
+  ],
+  "viewModels": [
+    "AuthViewModel", "CourseViewModel", "ExamViewModel", "MedalViewModel", "OnboardingViewModel", "RankingViewModel", "StoreViewModel", "ThemeViewModel", "UserViewModel", "VerificationPendingViewModel"
+  ],
+  "fileStructure": [
+    "app/src/androidTest/java/com/edukrd/app/ExampleInstrumentedTest.kt",
+    "app/src/main/java/com/edukrd/app/MainActivity.kt",
+    "app/src/main/java/com/edukrd/app/data/FirestoreService.kt",
+    "app/src/main/java/com/edukrd/app/di/AppModule.kt",
+    "app/src/main/java/com/edukrd/app/di/MyApplication.kt",
+    "app/src/main/java/com/edukrd/app/models/Course.kt",
+    "app/src/main/java/com/edukrd/app/models/OnboardingPage.kt",
+    "app/src/main/java/com/edukrd/app/models/StoreItem.kt",
+    "app/src/main/java/com/edukrd/app/models/User.kt",
+    "app/src/main/java/com/edukrd/app/models/UserProgress.kt",
+    "app/src/main/java/com/edukrd/app/navigation/NavGraph.kt",
+    "app/src/main/java/com/edukrd/app/navigation/Screen.kt",
+    "app/src/main/java/com/edukrd/app/repository/CoinRepository.kt",
+    "app/src/main/java/com/edukrd/app/repository/CourseRepository.kt",
+    "app/src/main/java/com/edukrd/app/repository/ExamRepository.kt",
+    "app/src/main/java/com/edukrd/app/repository/StoreRepository.kt",
+    "app/src/main/java/com/edukrd/app/repository/UserRepository.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/CourseScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/ErrorScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/ExamScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/ForgotPasswordScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/HomeScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/LoginScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/MedalsScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/OnboardingScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/RankingScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/RegisterScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/SettingsScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/StoreScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/screens/VerificationPendingScreen.kt",
+    "app/src/main/java/com/edukrd/app/ui/theme/Color.kt",
+    "app/src/main/java/com/edukrd/app/ui/theme/Theme.kt",
+    "app/src/main/java/com/edukrd/app/ui/theme/Type.kt",
+    "app/src/main/java/com/edukrd/app/utils/OnboardingManager.kt",
+    "app/src/main/java/com/edukrd/app/utils/Utils.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/AuthViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/CourseViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/ExamViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/MedalViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/OnboardingViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/RankingViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/StoreViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/ThemeViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/UserViewModel.kt",
+    "app/src/main/java/com/edukrd/app/viewmodel/VerificationPendingViewModel.kt"
+  ]
+}
+```
+
+
+

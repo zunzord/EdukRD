@@ -19,10 +19,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import coil.size.Size
 import com.edukrd.app.R
+import com.edukrd.app.ui.components.AsyncImageWithShimmer
+import com.edukrd.app.ui.components.DotLoadingIndicator
 import com.edukrd.app.viewmodel.CourseViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,124 +44,100 @@ fun CourseScreen(navController: NavController, courseId: String) {
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* futuro: sistema de puntuación */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Opciones"
-                        )
+                    IconButton(onClick = { }) {
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Opciones")
                     }
                 }
             )
         }
     ) { innerPadding ->
         when {
-            loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+            loading -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                DotLoadingIndicator(modifier = Modifier.size(56.dp))
             }
-            error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = error!!, color = MaterialTheme.colorScheme.error)
-                }
+            error != null -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = error!!, color = MaterialTheme.colorScheme.error)
             }
-            selectedCourse == null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "Curso no encontrado", color = MaterialTheme.colorScheme.error)
-                }
+            selectedCourse == null -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Curso no encontrado", color = MaterialTheme.colorScheme.error)
             }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    item {
-                        val mainImageUrl = selectedCourse!!.imageUrl
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 200.dp, max = 300.dp)
-                        ) {
-                            if (!mainImageUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = ImageRequest.Builder(context)
-                                        .data(mainImageUrl)
-                                        .crossfade(true)
-                                        .size(500, 300)
-                                        .build(),
-                                    contentDescription = "Imagen principal",
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Crop,
-                                    placeholder = painterResource(id = R.drawable.ic_course),
-                                    error = painterResource(id = R.drawable.ic_course)
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_course),
-                                    contentDescription = "Fallback",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = selectedCourse!!.title,
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.primary
+            else -> LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                item {
+                    val mainImageUrl = selectedCourse!!.imageUrl
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 200.dp, max = 300.dp)
+                    ) {
+                        if (mainImageUrl.isNotBlank()) {
+                            AsyncImageWithShimmer(
+                                url = mainImageUrl,
+                                contentDescription = "Imagen principal",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(8.dp))
                             )
-                            Text(
-                                text = selectedCourse!!.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_course),
+                                contentDescription = "Fallback",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
                     }
-
-                    items(courseContent) { page ->
-                        MinimalCourseContentItem(page = page)
+                }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = selectedCourse!!.title,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = selectedCourse!!.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     }
-
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Button(
-                            onClick = { navController.navigate("exam/$courseId") },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(text = "Tomar Examen")
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
+                }
+                items(courseContent) { page ->
+                    MinimalCourseContentItem(page = page)
+                }
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { navController.navigate("exam/$courseId") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Tomar Examen")
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -181,21 +156,13 @@ fun MinimalCourseContentItem(page: Map<String, Any>) {
             .padding(bottom = 16.dp)
     ) {
         if (imageUrl.isNotEmpty()) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(imageUrl)
-                    .crossfade(true)
-                    // Solicitamos dimensiones adecuadas en función del diseño, por ejemplo 500x300
-                    .size(500, 300)
-                    .build(),
+            AsyncImageWithShimmer(
+                url = imageUrl,
                 contentDescription = "Imagen del contenido",
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 150.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop,
-                placeholder = painterResource(id = R.drawable.ic_course),
-                error = painterResource(id = R.drawable.ic_course)
+                    .clip(RoundedCornerShape(8.dp))
             )
             Spacer(modifier = Modifier.height(8.dp))
         }

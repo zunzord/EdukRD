@@ -17,6 +17,14 @@ import com.edukrd.app.viewmodel.AuthResult
 import com.edukrd.app.viewmodel.AuthViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.edukrd.app.R
+import com.edukrd.app.ui.components.DotLoadingIndicator
+
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +83,7 @@ fun LoginScreen(navController: NavController) {
     }
 
     Scaffold(
+
         topBar = { TopAppBar(title = { Text("Iniciar Sesión") }) }
     ) { innerPadding ->
         Column(
@@ -85,6 +94,14 @@ fun LoginScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "Logo Edukrd",
+                modifier = Modifier
+                    .width(280.dp)
+                    .height(280.dp)
+                    .padding(bottom = 24.dp)
+            )
             Text("Iniciar Sesión", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -121,7 +138,7 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
-                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                if (isLoading) DotLoadingIndicator(modifier = Modifier.size(32.dp))
                 else Text("Ingresar")
             }
             Spacer(modifier = Modifier.height(8.dp))

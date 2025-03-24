@@ -39,6 +39,9 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import com.edukrd.app.ui.components.LoadingPlaceholder
+import com.edukrd.app.ui.components.AsyncImageWithShimmer
+
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -112,16 +115,7 @@ fun HomeScreen(navController: NavController) {
                     .padding(innerPadding)
             ) {
                 when {
-                    loading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
+                    loading -> LoadingPlaceholder()
                     courseError != null -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -335,22 +329,14 @@ fun ExperienceCard(
             .height(240.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Usamos directamente course.imageUrl (campo string)
             val coverUrl = course.imageUrl
             if (coverUrl.isNotBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(coverUrl)
-                        .crossfade(true)
-                        .size(400, 400)
-                        .placeholder(R.drawable.ic_course)
-                        .error(R.drawable.ic_course)
-                        .build(),
+                AsyncImageWithShimmer(
+                    url = coverUrl,
                     contentDescription = course.title,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Crop
+                        .clip(RoundedCornerShape(16.dp))
                 )
             } else {
                 Image(
@@ -373,25 +359,19 @@ fun ExperienceCard(
                 )
             }
             if (isCompleted && course.medalla.isNotBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(course.medalla)
-                        .crossfade(true)
-                        .size(200, 200)
-                        .placeholder(R.drawable.ic_course)
-                        .error(R.drawable.ic_course)
-                        .build(),
+                AsyncImageWithShimmer(
+                    url = course.medalla,
                     contentDescription = "Medalla",
                     modifier = Modifier
                         .size(40.dp)
                         .align(Alignment.TopStart)
-                        .padding(8.dp),
-                    contentScale = ContentScale.Crop
+                        .padding(8.dp)
                 )
             }
         }
     }
 }
+
 
 @Composable
 fun FullScreenCourseDetailSheet(
@@ -415,19 +395,12 @@ fun FullScreenCourseDetailSheet(
         ) {
             val coverUrl = course.imageUrl
             if (coverUrl.isNotBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(coverUrl)
-                        .crossfade(true)
-                        .size(800, 400)
-                        .placeholder(R.drawable.ic_course)
-                        .error(R.drawable.ic_course)
-                        .build(),
+                AsyncImageWithShimmer(
+                    url = course.imageUrl,
                     contentDescription = course.title,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
+                        .clip(RoundedCornerShape(8.dp))
                 )
             } else {
                 Image(

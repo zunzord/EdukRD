@@ -42,7 +42,7 @@ class CoinRepository @Inject constructor(
             .get()
             .await()
 
-        // Primera vez EVER
+        // Primera vez tomando examen
         if (everSnapshot.isEmpty) {
             return course.recompenza ?: 0
         }
