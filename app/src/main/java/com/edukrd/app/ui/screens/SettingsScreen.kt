@@ -18,6 +18,7 @@ import com.edukrd.app.viewmodel.UserViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import com.edukrd.app.ui.components.DotLoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +73,7 @@ fun SettingsScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                DotLoadingIndicator(modifier = Modifier.size(56.dp))
             }
         } else {
             val currentUserData = userData

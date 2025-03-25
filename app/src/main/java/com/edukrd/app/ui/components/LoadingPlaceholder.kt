@@ -17,8 +17,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.shadow
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 
@@ -36,7 +38,8 @@ private fun shimmerBrush(translate: Float): Brush {
 private fun ShimmerBox(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition()
     val translate by transition.animateFloat(
-        0f, 1000f,
+        initialValue = 0f,
+        targetValue = 1000f,
         animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart)
     )
     Box(modifier.background(shimmerBrush(translate), RoundedCornerShape(8.dp)))
@@ -80,28 +83,42 @@ fun AsyncImageWithShimmer(
 @Composable
 fun DotLoadingIndicator(
     modifier: Modifier = Modifier,
-    dotSize: Int = 12
+    dotSize: Dp = 16.dp
 ) {
     val transition = rememberInfiniteTransition()
     val delays = listOf(0, 150, 300)
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         delays.forEachIndexed { index, delay ->
             val scale by transition.animateFloat(
-                0.5f, 1f,
+                initialValue = 0.6f,
+                targetValue = 1.2f,
                 animationSpec = infiniteRepeatable(
-                    tween(600, delayMillis = delay, easing = FastOutSlowInEasing),
+                    tween(800, delayMillis = delay, easing = FastOutSlowInEasing),
+                    RepeatMode.Reverse
+                )
+            )
+            val alpha by transition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    tween(800, delayMillis = delay, easing = FastOutSlowInEasing),
                     RepeatMode.Reverse
                 )
             )
             Box(
                 Modifier
-                    .size(dotSize.dp)
-                    .scale(scale)
-                    .background(if (index % 2 == 0) Color(0xFF00008B) else Color(0xFF8B0000), CircleShape)
+                    .width(dotSize)
+                    .height(dotSize)
+                    .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
+                    .shadow(elevation = 4.dp, shape = CircleShape)
+                    .background(
+                        color = if (index % 2 == 0) Color(0xFF00008B) else Color(0xFF8B0000),
+                        shape = CircleShape
+                    )
             )
         }
     }

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.edukrd.app.ui.components.DotLoadingIndicator
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Query
 import com.edukrd.app.viewmodel.RankingViewModel
@@ -67,7 +68,7 @@ fun RankingScreen(navController: NavController) {
         ) {
             when {
                 loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    DotLoadingIndicator(modifier = Modifier.size(56.dp))
                 }
                 error != null -> {
                     Text(

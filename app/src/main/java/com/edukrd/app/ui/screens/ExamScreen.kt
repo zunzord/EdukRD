@@ -18,6 +18,7 @@ import com.edukrd.app.viewmodel.ExamState
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import com.edukrd.app.ui.components.DotLoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +59,7 @@ fun ExamScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when {
-                loading -> CircularProgressIndicator()
+                loading -> DotLoadingIndicator(modifier = Modifier.size(56.dp))
                 error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
                 examState == null -> Text("No se encontró examen para este curso.", color = MaterialTheme.colorScheme.error)
                 else -> {

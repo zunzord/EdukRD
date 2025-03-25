@@ -26,6 +26,7 @@ import com.edukrd.app.viewmodel.StoreViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
+import com.edukrd.app.ui.components.DotLoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +89,7 @@ fun StoreScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    DotLoadingIndicator(modifier = Modifier.size(56.dp))
                 }
             } else if (error != null) {
                 // Mensaje de error

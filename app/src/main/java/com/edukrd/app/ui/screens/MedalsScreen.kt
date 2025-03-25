@@ -21,6 +21,7 @@
     import androidx.hilt.navigation.compose.hiltViewModel
     import androidx.navigation.NavController
     import coil.compose.AsyncImage
+    import com.edukrd.app.ui.components.DotLoadingIndicator
     import com.edukrd.app.viewmodel.MedalData
     import com.edukrd.app.viewmodel.MedalViewModel
 
@@ -64,9 +65,7 @@
             ) {
                 when {
                     loading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        DotLoadingIndicator(modifier = Modifier.size(56.dp))
                     }
                     error != null -> {
                         Text(
