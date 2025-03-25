@@ -7,6 +7,7 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
 @Singleton
 class CourseRepository @Inject constructor(
     private val firestore: FirebaseFirestore
@@ -79,6 +80,8 @@ class CourseRepository @Inject constructor(
             emptyList()
         }
     }
+
+
 
     suspend fun getCourseById(courseId: String): Course? {
         return try {

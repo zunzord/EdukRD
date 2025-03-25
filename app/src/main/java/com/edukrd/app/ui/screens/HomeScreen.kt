@@ -41,12 +41,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.edukrd.app.ui.components.LoadingPlaceholder
 import com.edukrd.app.ui.components.AsyncImageWithShimmer
+import com.edukrd.app.viewmodel.ExamViewModel
+import androidx.compose.runtime.collectAsState
+import com.edukrd.app.viewmodel.DailyTarget
+
 
 
 @Composable
 fun HomeScreen(navController: NavController) {
     val userViewModel: UserViewModel = hiltViewModel()
     val courseViewModel: CourseViewModel = hiltViewModel()
+
+    val examViewModel: ExamViewModel = hiltViewModel()
+    val dailyTarget by examViewModel.dailyTarget.collectAsState(initial = DailyTarget(target = 1, streakCount = 0))
+    LaunchedEffect(Unit) { examViewModel.loadDailyStreakTarget() }
+
 
     val userData by userViewModel.userData.collectAsState()
     val userLoading by userViewModel.loading.collectAsState()
@@ -138,7 +147,9 @@ fun HomeScreen(navController: NavController) {
                             val bannerImageUrl = courses.firstOrNull()?.imageUrl ?: ""
                             BannerSection(
                                 bannerUrl = bannerImageUrl,
-                                userName = userData?.name ?: "User"
+                                userName = userData?.name ?: "User",
+                                dailyTarget = dailyTarget // <-- Agregar este parámetro
+
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             LazyRow(
@@ -217,7 +228,8 @@ fun TopHeader(
 @Composable
 fun BannerSection(
     bannerUrl: String,
-    userName: String
+    userName: String,
+    dailyTarget: DailyTarget // <-- Recibir el parámetro
 ) {
     val context = LocalContext.current
     Box(
@@ -253,9 +265,49 @@ fun BannerSection(
                 .align(Alignment.BottomStart)
                 .padding(16.dp)
         )
+
+
+
+
     }
+
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(8.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Meta diaria", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = dailyTarget.streakCount.toFloat() / dailyTarget.target,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = Color(0xFF00008B),
+                trackColor = Color(0xFF8B0000).copy(alpha = .3f)
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF8B0000))
+                Spacer(Modifier.width(4.dp))
+                Text("${dailyTarget.streakCount} días consecutivos")
+            }
+        }
+    }
+
 }
 
+
+//
+
+
+
+//
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     NavigationBar(
