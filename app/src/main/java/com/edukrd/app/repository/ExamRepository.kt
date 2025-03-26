@@ -16,8 +16,11 @@ data class Exam(
     val id: String = ""
 )
 
+
+
 @Singleton
 class ExamRepository @Inject constructor(
+
     private val firestore: FirebaseFirestore
 ) {
 
@@ -100,4 +103,29 @@ class ExamRepository @Inject constructor(
             false
         }
     }
+
+    suspend fun getAllPassedExamDates(userId: String): List<LocalDate> {
+        return try {
+            val snapshot = firestore.collection("examResults")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("passed", true)
+                .get()
+                .await()
+            snapshot.documents.mapNotNull { doc ->
+                doc.getTimestamp("date")?.toDate()
+                    ?.toInstant()
+                    ?.atZone(ZoneId.systemDefault())
+                    ?.toLocalDate()
+            }
+        } catch (e: Exception) {
+            Log.e("ExamRepository", "Error retrieving exam dates", e)
+            emptyList()
+        }
+    }
+
+
 }
+
+
+
+

@@ -3,6 +3,7 @@ package com.edukrd.app.ui.screens
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -35,27 +39,38 @@ import com.edukrd.app.R
 import com.edukrd.app.models.Course
 import com.edukrd.app.viewmodel.CourseViewModel
 import com.edukrd.app.viewmodel.UserViewModel
+import com.edukrd.app.viewmodel.ExamViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.edukrd.app.ui.components.LoadingPlaceholder
 import com.edukrd.app.ui.components.AsyncImageWithShimmer
-import com.edukrd.app.viewmodel.ExamViewModel
 import androidx.compose.runtime.collectAsState
 import com.edukrd.app.viewmodel.DailyTarget
+import com.edukrd.app.viewmodel.UserGoalsState
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.ceil
 
-
+// Nota: Asegúrate de que la clase UserGoalsState esté accesible (por ejemplo, definida en ExamViewModel o en un archivo de modelos)
 
 @Composable
 fun HomeScreen(navController: NavController) {
     val userViewModel: UserViewModel = hiltViewModel()
     val courseViewModel: CourseViewModel = hiltViewModel()
-
     val examViewModel: ExamViewModel = hiltViewModel()
-    val dailyTarget by examViewModel.dailyTarget.collectAsState(initial = DailyTarget(target = 1, streakCount = 0))
-    LaunchedEffect(Unit) { examViewModel.loadDailyStreakTarget() }
 
+    // Usamos el nuevo StateFlow con las metas y progreso (UserGoalsState)
+    val userGoalsState by examViewModel.userGoalsState.collectAsState()
+
+    // Cargamos tanto el antiguo método (para la lógica de streak, si es que aún lo necesitas) como el nuevo cálculo de metas
+    LaunchedEffect(Unit) {
+        examViewModel.loadDailyStreakTarget()
+        examViewModel.loadUserGoals()
+        userViewModel.loadCurrentUserData()
+        courseViewModel.loadCoursesAndProgress()
+    }
 
     val userData by userViewModel.userData.collectAsState()
     val userLoading by userViewModel.loading.collectAsState()
@@ -65,18 +80,17 @@ fun HomeScreen(navController: NavController) {
     val coursesLoading by courseViewModel.loading.collectAsState()
     val courseError by courseViewModel.error.collectAsState()
 
-    LaunchedEffect(Unit) {
-        userViewModel.loadCurrentUserData()
-        courseViewModel.loadCoursesAndProgress()
-    }
-    val loading = userLoading || coursesLoading
+    // Estado para controlar la visualización del diálogo de resumen de metas
+    val showDialog = remember { mutableStateOf(false) }
 
+    // Estado para el ModalBottomSheet de detalle de cursos
     val sheetState = rememberModalBottomSheetState(
         initialValue = ModalBottomSheetValue.Hidden,
         skipHalfExpanded = true
     )
     val coroutineScope = rememberCoroutineScope()
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
+
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
@@ -124,7 +138,7 @@ fun HomeScreen(navController: NavController) {
                     .padding(innerPadding)
             ) {
                 when {
-                    loading -> LoadingPlaceholder()
+                    userLoading || coursesLoading -> LoadingPlaceholder()
                     courseError != null -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -143,13 +157,13 @@ fun HomeScreen(navController: NavController) {
                                 .verticalScroll(rememberScrollState())
                                 .background(MaterialTheme.colorScheme.background)
                         ) {
-                            // Mostramos la imagen única del primer curso en el banner
+                            // BannerSection: muestra la imagen de banner, saludo y la tarjeta de meta diaria
                             val bannerImageUrl = courses.firstOrNull()?.imageUrl ?: ""
                             BannerSection(
                                 bannerUrl = bannerImageUrl,
                                 userName = userData?.name ?: "User",
-                                dailyTarget = dailyTarget // <-- Agregar este parámetro
-
+                                userGoalsState = userGoalsState,
+                                onDailyTargetClick = { showDialog.value = true }
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             LazyRow(
@@ -171,6 +185,71 @@ fun HomeScreen(navController: NavController) {
                             }
                             Spacer(modifier = Modifier.height(24.dp))
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // Diálogo modal para mostrar el resumen de metas (semanal, mensual y el progreso global)
+    if (showDialog.value) {
+        Dialog(
+            onDismissRequest = { showDialog.value = false }
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Resumen de Metas",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // Meta semanal
+                    Text(
+                        text = "Meta semanal: ${userGoalsState.weeklyCurrent}/${userGoalsState.weeklyTarget}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    LinearProgressIndicator(
+                        progress = if (userGoalsState.weeklyTarget > 0)
+                            userGoalsState.weeklyCurrent.toFloat() / userGoalsState.weeklyTarget else 0f,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // Meta mensual
+                    Text(
+                        text = "Meta mensual: ${userGoalsState.monthlyCurrent}/${userGoalsState.monthlyTarget}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    LinearProgressIndicator(
+                        progress = if (userGoalsState.monthlyTarget > 0)
+                            userGoalsState.monthlyCurrent.toFloat() / userGoalsState.monthlyTarget else 0f,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // Progreso global en porcentaje
+                    Text(
+                        text = "Progreso global: ${userGoalsState.globalProgress.toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { showDialog.value = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(text = "Cerrar")
                     }
                 }
             }
@@ -229,7 +308,8 @@ fun TopHeader(
 fun BannerSection(
     bannerUrl: String,
     userName: String,
-    dailyTarget: DailyTarget // <-- Recibir el parámetro
+    userGoalsState: UserGoalsState,
+    onDailyTargetClick: () -> Unit
 ) {
     val context = LocalContext.current
     Box(
@@ -265,49 +345,48 @@ fun BannerSection(
                 .align(Alignment.BottomStart)
                 .padding(16.dp)
         )
-
-
-
-
     }
-
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onDailyTargetClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text("Meta diaria", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = dailyTarget.streakCount.toFloat() / dailyTarget.target,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = Color(0xFF00008B),
-                trackColor = Color(0xFF8B0000).copy(alpha = .3f)
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF8B0000))
-                Spacer(Modifier.width(4.dp))
-                Text("${dailyTarget.streakCount} días consecutivos")
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(
+                    progress = if (userGoalsState.dailyTarget > 0)
+                        userGoalsState.dailyCurrent.toFloat() / userGoalsState.dailyTarget else 0f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Color(0xFF00008B),
+                    trackColor = Color(0xFF8B0000).copy(alpha = 0.3f)
+                )
+                Text(
+                    text = "${userGoalsState.dailyCurrent}/${userGoalsState.dailyTarget}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                if (userGoalsState.dailyCurrent >= userGoalsState.dailyTarget) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Meta diaria alcanzada",
+                        tint = Color.Yellow,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
             }
         }
     }
-
 }
 
-
-//
-
-
-
-//
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     NavigationBar(
@@ -424,7 +503,6 @@ fun ExperienceCard(
     }
 }
 
-
 @Composable
 fun FullScreenCourseDetailSheet(
     course: Course,
@@ -485,10 +563,9 @@ fun FullScreenCourseDetailSheet(
             Spacer(modifier = Modifier.height(8.dp))
             val reward = if (!isCompleted) course.recompenza else course.recompenzaExtra
             Text(
-                text = "$coinReward coins",
+                text = "$coinReward monedas",
                 style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.primary)
             )
-
             Spacer(modifier = Modifier.height(8.dp))
             Row {
                 repeat(5) {
