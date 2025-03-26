@@ -69,6 +69,15 @@ class ExamViewModel @Inject constructor(
     private val _userGoalsState = MutableStateFlow(UserGoalsState())
     val userGoalsState: StateFlow<UserGoalsState> = _userGoalsState
 
+    private val _dailyGraphData = MutableStateFlow<List<Float>>(emptyList())
+    val dailyGraphData: StateFlow<List<Float>> = _dailyGraphData
+
+    private val _weeklyGraphData = MutableStateFlow<List<Float>>(emptyList())
+    val weeklyGraphData: StateFlow<List<Float>> = _weeklyGraphData
+
+    private val _monthlyGraphData = MutableStateFlow<List<Float>>(emptyList())
+    val monthlyGraphData: StateFlow<List<Float>> = _monthlyGraphData
+
     init {
         loadDailyStreakTarget()
     }
@@ -195,7 +204,7 @@ class ExamViewModel @Inject constructor(
                 // 1) Obtenemos todas las fechas de exámenes aprobados
                 val allDates = examRepository.getAllPassedExamDates(uid)
 
-                // Si no hay datos, establecemos valores mínimos fijos
+                // Si no hay datos, establecemos valores mínimos fijos y vaciamos los datos gráficos
                 if (allDates.isEmpty()) {
                     _userGoalsState.value = UserGoalsState(
                         dailyTarget = 1,
@@ -206,6 +215,9 @@ class ExamViewModel @Inject constructor(
                         monthlyCurrent = 0,
                         globalProgress = 0f
                     )
+                    _dailyGraphData.value = emptyList()
+                    _weeklyGraphData.value = emptyList()
+                    _monthlyGraphData.value = emptyList()
                     return@launch
                 }
 
@@ -243,7 +255,7 @@ class ExamViewModel @Inject constructor(
                 // Calculamos la cantidad de semanas (distintas) en el mes anterior.
                 val weeksInLastMonth = lastMonthDates.map { it.get(java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR) }
                     .toSet().size
-                // Si no se encontraron semanas (p.ej., sin datos), usamos 0 para evitar división por cero.
+                // Si no se encontraron semanas, evitamos división por cero.
                 val computedWeekly = if (weeksInLastMonth > 0)
                     kotlin.math.ceil(totalLastMonth.toDouble() / weeksInLastMonth).toInt() else 0
                 // El mínimo para la meta semanal es 7.
@@ -278,7 +290,6 @@ class ExamViewModel @Inject constructor(
                 val fractionDaily = if (dailyTarget > 0) currentDaily.toFloat() / dailyTarget else 0f
                 val fractionWeekly = if (weeklyTarget > 0) currentWeekly.toFloat() / weeklyTarget else 0f
                 val fractionMonthly = if (monthlyTarget > 0) currentMonthly.toFloat() / monthlyTarget else 0f
-
                 val globalProgress = ((fractionDaily + fractionWeekly + fractionMonthly) / 3f) * 100f
 
                 // ---------------------------
@@ -293,12 +304,43 @@ class ExamViewModel @Inject constructor(
                     globalProgress = globalProgress
                 )
 
+                // ---------------------------
+                // 8) Calcular datos para los gráficos.
+                // Datos diarios: se usa la semana actual. Se genera una lista de 7 elementos (por cada día de la semana, 1 = lunes … 7 = domingo)
+                val currentWeekDates = allDates.filter { date ->
+                    date.year == today.year &&
+                            date.get(java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR) == currentWeek
+                }
+                val dailyGraph = (1..7).map { dayIndex ->
+                    currentWeekDates.count { it.dayOfWeek.value == dayIndex }.toFloat()
+                }
+                _dailyGraphData.value = dailyGraph
+
+                // Datos semanales: se usa el mes actual. Agrupamos por "semana del mes": ((día - 1) / 7) + 1.
+                val currentMonthDates = allDates.filter { date ->
+                    date.year == today.year && date.monthValue == currentMonth
+                }
+                val weeksInCurrentMonth = if (currentMonthDates.isNotEmpty())
+                    currentMonthDates.maxOf { ((it.dayOfMonth - 1) / 7) + 1 } else 1
+                val weeklyGraph = (1..weeksInCurrentMonth).map { week ->
+                    currentMonthDates.count { ((it.dayOfMonth - 1) / 7) + 1 == week }.toFloat()
+                }
+                _weeklyGraphData.value = weeklyGraph
+
+                // Datos mensuales: se usa el año actual. Se genera una lista de 12 elementos (uno por cada mes)
+                val currentYearDates = allDates.filter { it.year == today.year }
+                val monthlyGraph = (1..12).map { month ->
+                    currentYearDates.count { it.monthValue == month }.toFloat()
+                }
+                _monthlyGraphData.value = monthlyGraph
+
             } catch (e: Exception) {
                 Log.e("ExamViewModel", "Error calculando metas del usuario", e)
                 // Aquí podrías emitir un estado de error si lo requieres.
             }
         }
     }
+
 
 
 }

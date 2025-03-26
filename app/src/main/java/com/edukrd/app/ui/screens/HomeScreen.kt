@@ -52,6 +52,7 @@ import com.edukrd.app.viewmodel.UserGoalsState
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.ceil
+import com.edukrd.app.ui.components.GlobalStatsDialog
 
 // Nota: Asegúrate de que la clase UserGoalsState esté accesible (por ejemplo, definida en ExamViewModel o en un archivo de modelos)
 
@@ -79,6 +80,12 @@ fun HomeScreen(navController: NavController) {
     val coinRewards by courseViewModel.coinRewards.collectAsState()
     val coursesLoading by courseViewModel.loading.collectAsState()
     val courseError by courseViewModel.error.collectAsState()
+
+    val dailyData by examViewModel.dailyGraphData.collectAsState()
+    val weeklyData by examViewModel.weeklyGraphData.collectAsState()
+    val monthlyData by examViewModel.monthlyGraphData.collectAsState()
+
+
 
     // Estado para controlar la visualización del diálogo de resumen de metas
     val showDialog = remember { mutableStateOf(false) }
@@ -191,69 +198,22 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
+
+
     // Diálogo modal para mostrar el resumen de metas (semanal, mensual y el progreso global)
     if (showDialog.value) {
-        Dialog(
-            onDismissRequest = { showDialog.value = false }
-        ) {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Resumen de Metas",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // Meta semanal
-                    Text(
-                        text = "Meta semanal: ${userGoalsState.weeklyCurrent}/${userGoalsState.weeklyTarget}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    LinearProgressIndicator(
-                        progress = if (userGoalsState.weeklyTarget > 0)
-                            userGoalsState.weeklyCurrent.toFloat() / userGoalsState.weeklyTarget else 0f,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // Meta mensual
-                    Text(
-                        text = "Meta mensual: ${userGoalsState.monthlyCurrent}/${userGoalsState.monthlyTarget}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    LinearProgressIndicator(
-                        progress = if (userGoalsState.monthlyTarget > 0)
-                            userGoalsState.monthlyCurrent.toFloat() / userGoalsState.monthlyTarget else 0f,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // Progreso global en porcentaje
-                    Text(
-                        text = "Progreso global: ${userGoalsState.globalProgress.toInt()}%",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { showDialog.value = false },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(text = "Cerrar")
-                    }
-                }
-            }
-        }
+        GlobalStatsDialog(
+            onDismiss = { showDialog.value = false },
+            globalProgress = userGoalsState.globalProgress,
+            totalExamenes = userGoalsState.dailyCurrent +
+                    userGoalsState.weeklyCurrent +
+                    userGoalsState.monthlyCurrent,
+
+            // En lugar de examViewModel.dailyGraphData.value:
+            dailyData = dailyData,
+            weeklyData = weeklyData,
+            monthlyData = monthlyData
+        )
     }
 }
 

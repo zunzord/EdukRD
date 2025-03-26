@@ -69,6 +69,8 @@ dependencies {
     // Material3 para componentes modernos
     implementation("androidx.compose.material3:material3:1.3.1")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation ("com.github.tehras.charts:charts:1.0.0-alpha03")
+
     implementation("androidx.compose.material:material-icons-extended:<version>")
 
     //otros
