@@ -60,10 +60,61 @@ import com.github.mikephil.charting.data.BarEntry
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.toArgb
 import com.mackhartley.roundedprogressbar.RoundedProgressBar
+import com.edukrd.data.viewmodel.RatingViewModel
+import kotlin.math.roundToInt
+import androidx.compose.foundation.clickable
 
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
+
+
+@Composable
+fun TopHeader(
+    userName: String,
+    onSettingsClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.primary)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "EDUKRD",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+            IconButton(
+                onClick = onLogoutClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PowerSettingsNew,
+                    contentDescription = "Logout",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -220,54 +271,6 @@ fun HomeScreen(navController: NavController) {
         )
     }
 }
-
-@Composable
-fun TopHeader(
-    userName: String,
-    onSettingsClick: () -> Unit,
-    onLogoutClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "EDUKRD",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-            IconButton(
-                onClick = onLogoutClick,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PowerSettingsNew,
-                    contentDescription = "Logout",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    }
-}
-
 @Composable
 fun BannerSection(
     bannerUrl: String,
@@ -523,7 +526,15 @@ fun FullScreenCourseDetailSheet(
     onClose: () -> Unit,
     onTakeCourse: () -> Unit
 ) {
-    val context = LocalContext.current
+    val ratingVm: RatingViewModel = hiltViewModel()
+    val avgRating by ratingVm.avgRating.collectAsState()
+    val userRating by ratingVm.userRating.collectAsState()
+    var showRatingDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(course.id) {
+        ratingVm.loadRatings(course.id)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -538,7 +549,7 @@ fun FullScreenCourseDetailSheet(
             val coverUrl = course.imageUrl
             if (coverUrl.isNotBlank()) {
                 AsyncImageWithShimmer(
-                    url = course.imageUrl,
+                    url = coverUrl,
                     contentDescription = course.title,
                     modifier = Modifier
                         .fillMaxSize()
@@ -565,6 +576,7 @@ fun FullScreenCourseDetailSheet(
                 )
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
@@ -573,26 +585,35 @@ fun FullScreenCourseDetailSheet(
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
-            val reward = if (!isCompleted) course.recompenza else course.recompenzaExtra
             Text(
                 text = "$coinReward monedas",
                 style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.primary)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row {
-                repeat(5) {
+
+            // ⭐ Rating Row (clickable)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showRatingDialog = true }
+                    .padding(vertical = 8.dp)
+            ) {
+                repeat(5) { index ->
                     Icon(
                         imageVector = Icons.Default.Star,
-                        contentDescription = "Star",
-                        tint = Color(0xFFFFD700)
+                        contentDescription = null,
+                        tint = if (index < (userRating ?: avgRating.roundToInt())) Color(0xFFFFD700) else Color.Gray,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "(5.0)",
+                    text = String.format("%.1f", avgRating),
                     style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground)
                 )
             }
+
             Spacer(modifier = Modifier.height(16.dp))
             if (course.description.isNotBlank()) {
                 Text(
@@ -612,4 +633,36 @@ fun FullScreenCourseDetailSheet(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+
+    // ⭐⭐ Rating Dialog ⭐⭐
+    if (showRatingDialog) {
+        Dialog(onDismissRequest = { showRatingDialog = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(shape = RoundedCornerShape(16.dp)) {
+                    Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { index ->
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = if (index < (userRating ?: 0)) Color(0xFFFFD700) else Color.Gray,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clickable {
+                                        ratingVm.submitRating(course.id, index + 1)
+                                        showRatingDialog = false
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+
