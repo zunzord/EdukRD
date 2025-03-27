@@ -19,6 +19,11 @@ fun NavGraph(
     themeViewModel: ThemeViewModel
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
+
+        composable(Screen.Splash.route) {
+            SplashScreen(navController)
+        }
+
         composable(Screen.Login.route) {
             LoginScreen(navController)
         }
@@ -60,6 +65,7 @@ fun NavGraph(
         composable(Screen.Error.route) {
             ErrorScreen(navController)
         }
+
         composable(
             route = Screen.VerificationPending.route,
             arguments = listOf(navArgument("email") {

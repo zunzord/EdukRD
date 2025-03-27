@@ -1,7 +1,7 @@
 package com.edukrd.app.repository
 
 import android.util.Log
-import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
@@ -16,11 +16,8 @@ data class Exam(
     val id: String = ""
 )
 
-
-
 @Singleton
 class ExamRepository @Inject constructor(
-
     private val firestore: FirebaseFirestore
 ) {
 
@@ -91,7 +88,7 @@ class ExamRepository @Inject constructor(
                 "courseId" to courseId,
                 "score" to score,
                 "passed" to passed,
-                "date" to Timestamp.now()
+                "date" to FieldValue.serverTimestamp()
             )
             firestore.collection("examResults")
                 .document()
@@ -112,7 +109,8 @@ class ExamRepository @Inject constructor(
                 .get()
                 .await()
             snapshot.documents.mapNotNull { doc ->
-                doc.getTimestamp("date")?.toDate()
+                doc.getTimestamp("date")
+                    ?.toDate()
                     ?.toInstant()
                     ?.atZone(ZoneId.systemDefault())
                     ?.toLocalDate()
@@ -122,10 +120,4 @@ class ExamRepository @Inject constructor(
             emptyList()
         }
     }
-
-
 }
-
-
-
-

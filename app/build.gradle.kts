@@ -79,12 +79,10 @@ dependencies {
 
     //otros
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
-
-    //
-
     implementation("com.github.MackHartley:RoundedProgressBar:3.0.0")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
 
     //Vico
 
@@ -119,6 +117,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-database-ktx:20.2.1")
 
     // Hilt para inyección de dependencias
     implementation("com.google.dagger:hilt-android:2.48.1")
@@ -130,6 +129,7 @@ dependencies {
 
     // Otras dependencias de AndroidX
     implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")

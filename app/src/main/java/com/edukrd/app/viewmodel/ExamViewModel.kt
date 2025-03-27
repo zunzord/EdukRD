@@ -3,18 +3,20 @@ package com.edukrd.app.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.edukrd.app.models.Course
 import com.edukrd.app.repository.CoinRepository
 import com.edukrd.app.repository.CourseRepository
 import com.edukrd.app.repository.ExamRepository
+import com.edukrd.app.usecase.GetServerDateUseCase
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-
+import java.time.temporal.ChronoField
 import javax.inject.Inject
+
+
 
 data class ExamState(
     val examId: String = "",
@@ -48,8 +50,11 @@ class ExamViewModel @Inject constructor(
     private val examRepository: ExamRepository,
     private val courseRepository: CourseRepository,
     private val coinRepository: CoinRepository,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val getServerDateUseCase: GetServerDateUseCase
 ) : ViewModel() {
+
+    private var currentDate: LocalDate? = null
 
     private val _examState = MutableStateFlow<ExamState?>(null)
     val examState: StateFlow<ExamState?> = _examState
@@ -79,8 +84,14 @@ class ExamViewModel @Inject constructor(
     val monthlyGraphData: StateFlow<List<Float>> = _monthlyGraphData
 
     init {
-        loadDailyStreakTarget()
+        viewModelScope.launch {
+            currentDate = getServerDateUseCase()
+            loadDailyStreakTarget()
+            loadUserGoals()
+        }
     }
+
+    private fun today(): LocalDate = currentDate ?: LocalDate.now()
 
     fun loadExamData(courseId: String) {
         viewModelScope.launch {
@@ -165,7 +176,7 @@ class ExamViewModel @Inject constructor(
                 val globalAvg = dailyCounts.values.sum().toDouble() / sortedDates.size
 
                 // Promedio semanal
-                val last7 = LocalDate.now().minusDays(7)
+                val last7 = today().minusDays(7)
                 val weeklyValues = dailyCounts.filterKeys { it.isAfter(last7) }.values
                 val weeklyAvg = if (weeklyValues.isEmpty()) globalAvg else weeklyValues.average()
 
@@ -183,7 +194,7 @@ class ExamViewModel @Inject constructor(
                 var streak = 0
                 sortedDates.forEachIndexed { index, date ->
                     // Rompe si la fecha ya no coincide con "hoy - index"
-                    if (date == LocalDate.now().minusDays(index.toLong())) streak++
+                    if (date == today().minusDays(index.toLong())) streak++
                     else return@forEachIndexed
                 }
 
@@ -221,7 +232,7 @@ class ExamViewModel @Inject constructor(
                     return@launch
                 }
 
-                val today = LocalDate.now()
+                val today = today()
 
                 // ---------------------------
                 // 2) Cálculo de la Meta Diaria

@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.edukrd.app.navigation.NavGraph
 import com.edukrd.app.navigation.Screen
 import com.edukrd.app.ui.theme.EdukRDTheme
+import com.edukrd.app.viewmodel.AuthResult
 import com.edukrd.app.viewmodel.AuthViewModel
 import com.edukrd.app.viewmodel.ThemeViewModel
 import com.edukrd.app.viewmodel.UserViewModel
@@ -27,55 +28,21 @@ class MainActivity : ComponentActivity() {
             val userViewModel: UserViewModel = hiltViewModel()
 
             val themePreference by themeViewModel.themePreference.collectAsState()
-            val uid by authViewModel.uid.collectAsState()
+            val authResult by authViewModel.authResult.collectAsState(initial = null)
             val navigationCommand by userViewModel.navigationCommand.collectAsState(initial = null)
 
             val navController = rememberNavController()
 
-            // Cuando cambia la autenticación, cargamos datos si está logueado
-            LaunchedEffect(uid) {
-                if (uid != null) {
+            LaunchedEffect(authResult) {
+                if (authResult is AuthResult.Success) {
                     userViewModel.loadCurrentUserData()
-                } else {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0)
-                    }
                 }
             }
 
-            // Navegación reactiva según el comando emitido por UserViewModel
-            LaunchedEffect(navigationCommand) {
-                when (navigationCommand) {
-                    UserViewModel.NavigationCommand.ToOnboarding -> {
-                        navController.navigate(Screen.Onboarding.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    }
-                    UserViewModel.NavigationCommand.ToHome -> {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    }
-                    UserViewModel.NavigationCommand.ContactSupport -> {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Error cargando perfil. Contacta soporte.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
-                        }
-                    }
-                    null -> Unit
-                }
-            }
+
 
             EdukRDTheme(darkTheme = (themePreference == "dark")) {
-                NavGraph(
-                    navController = navController,
-                    startDestination = Screen.Login.route,
-                    themeViewModel = themeViewModel
-                )
+                NavGraph(navController = navController, startDestination = Screen.Splash.route, themeViewModel = themeViewModel)
             }
         }
     }
