@@ -1,0 +1,6 @@
+Generar metadata: python extract_meta.py > metadata.txt
+
+Obtener estructura completa: tree /F > structure.txt
+
+Obtener estructura corta: Get-ChildItem -Recurse -Depth 2 | ForEach-Object { $_.FullName.Substring($PWD.Path.Length+1) } > structure_short.txt
+

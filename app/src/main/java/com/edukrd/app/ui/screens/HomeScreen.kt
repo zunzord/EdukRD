@@ -53,8 +53,15 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.ceil
 import com.edukrd.app.ui.components.GlobalStatsDialog
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.toArgb
 
-// Nota: Asegúrate de que la clase UserGoalsState esté accesible (por ejemplo, definida en ExamViewModel o en un archivo de modelos)
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -85,8 +92,6 @@ fun HomeScreen(navController: NavController) {
     val weeklyData by examViewModel.weeklyGraphData.collectAsState()
     val monthlyData by examViewModel.monthlyGraphData.collectAsState()
 
-
-
     // Estado para controlar la visualización del diálogo de resumen de metas
     val showDialog = remember { mutableStateOf(false) }
 
@@ -97,7 +102,6 @@ fun HomeScreen(navController: NavController) {
     )
     val coroutineScope = rememberCoroutineScope()
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
-
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
@@ -198,18 +202,16 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-
-
     // Diálogo modal para mostrar el resumen de metas (semanal, mensual y el progreso global)
     if (showDialog.value) {
         GlobalStatsDialog(
             onDismiss = { showDialog.value = false },
-            globalProgress = userGoalsState.globalProgress,
-            totalExamenes = userGoalsState.dailyCurrent +
-                    userGoalsState.weeklyCurrent +
-                    userGoalsState.monthlyCurrent,
-
-            // En lugar de examViewModel.dailyGraphData.value:
+            dailyCurrent = userGoalsState.dailyCurrent,
+            dailyTarget = userGoalsState.dailyTarget,
+            weeklyCurrent = userGoalsState.weeklyCurrent,
+            weeklyTarget = userGoalsState.weeklyTarget,
+            monthlyCurrent = userGoalsState.monthlyCurrent,
+            monthlyTarget = userGoalsState.monthlyTarget,
             dailyData = dailyData,
             weeklyData = weeklyData,
             monthlyData = monthlyData
@@ -272,75 +274,137 @@ fun BannerSection(
     onDailyTargetClick: () -> Unit
 ) {
     val context = LocalContext.current
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(250.dp)
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.fondo),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    Column {
         Box(
             modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.6f)
+                .fillMaxWidth()
+                .height(250.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.fondo),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.6f)
+                            )
                         )
                     )
-                )
-        )
-        Text(
-            text = "Hola, $userName!",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            ),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp)
+            )
+            Text(
+                text = "Hola, $userName!",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp)
+            )
+        }
+        // Se invoca DailyProgressCard debajo del banner
+        DailyProgressCard(
+            dailyCurrent = userGoalsState.dailyCurrent,
+            dailyTarget = userGoalsState.dailyTarget,
+            onDailyTargetClick = onDailyTargetClick
         )
     }
+}
 
+@Composable
+fun DailyProgressCard(
+    dailyCurrent: Int,
+    dailyTarget: Int,
+    onDailyTargetClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onDailyTargetClick() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Meta diaria", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    progress = if (userGoalsState.dailyTarget > 0)
-                        userGoalsState.dailyCurrent.toFloat() / userGoalsState.dailyTarget else 0f,
+            Text("Meta diaria", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val ratio = if (dailyTarget > 0) dailyCurrent.toFloat() / dailyTarget else 0f
+            val barColor = MaterialTheme.colorScheme.primary.toArgb()
+
+            // Contenedor donde se superpone la barra y el texto a la derecha
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+            ) {
+                // 1) BarChart con barra y sombra gris
+                AndroidView(
+                    modifier = Modifier.fillMaxSize()
+                        .requiredHeight(48.dp)         // barra dibujada doble grosor
+                        .offset(y = (-12).dp),         // desplaza mitad arriba para centrar
+                    factory = { context ->
+                        BarChart(context).apply {
+                            description.isEnabled = false
+                            legend.isEnabled = false
+
+                            // Dibujar la "sombra" para la parte no completada
+                            setDrawBarShadow(false)
+                            setDrawValueAboveBar(false)
+
+                            axisRight.isEnabled = false
+                            axisLeft.isEnabled = false
+                            xAxis.isEnabled = false
+
+                            setDrawGridBackground(false)
+                            setDrawBorders(false)
+                            setBackgroundColor(Color.Transparent.toArgb())
+                        }
+                    },
+                    update = { chart ->
+                        val entry = BarEntry(0f, ratio)
+                        val dataSet = BarDataSet(listOf(entry), "").apply {
+                            color = barColor
+                            //barShadowColor = Color.LightGray.toArgb()
+                            setDrawValues(false)
+                        }
+                        // Usamos barWidth = 1f para que la barra ocupe todo el ancho
+                        val barData = BarData(dataSet).apply {
+                            barWidth = 1f
+                        }
+                        chart.data = barData
+                        chart.invalidate()
+                    }
+                )
+
+                // 2) Texto + icono superpuestos a la derecha
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Color(0xFF00008B),
-                    trackColor = Color(0xFF8B0000).copy(alpha = 0.3f)
-                )
-                Text(
-                    text = "${userGoalsState.dailyCurrent}/${userGoalsState.dailyTarget}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                if (userGoalsState.dailyCurrent >= userGoalsState.dailyTarget) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Meta diaria alcanzada",
-                        tint = Color.Yellow,
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "$dailyCurrent/$dailyTarget",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                     )
+                    if (dailyCurrent >= dailyTarget) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.star),
+                            tint = Color.Unspecified,
+                            contentDescription = "Meta diaria alcanzada",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }

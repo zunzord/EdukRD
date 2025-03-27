@@ -2,59 +2,47 @@ package com.edukrd.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import kotlin.math.ceil
+import ir.ehsannarmani.compose_charts.LineChart
+import androidx.compose.ui.text.font.FontWeight
+import ir.ehsannarmani.compose_charts.models.Line
+import ir.ehsannarmani.compose_charts.models.DrawStyle
+import androidx.compose.ui.text.style.TextAlign
+import com.edukrd.app.R
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.window.DialogProperties
 
-/**
- * GlobalStatsDialog muestra un diálogo modal con:
- * - Encabezado: “Meta global”, total de exámenes aprobados y porcentaje global.
- * - Botones para seleccionar el periodo: Diario, Semanal y Mensual.
- * - Un gráfico lineal que muestra la evolución según el periodo seleccionado.
- *
- * Los datos reales se reciben como parámetros:
- * @param dailyData   -> Lista de Float con exámenes aprobados por día (semana actual).
- * @param weeklyData  -> Lista de Float con exámenes aprobados por semana (mes actual).
- * @param monthlyData -> Lista de Float con exámenes aprobados por mes (año actual).
- */
 
 enum class Period { Daily, Weekly, Monthly }
 
 @Composable
 fun GlobalStatsDialog(
     onDismiss: () -> Unit,
-    globalProgress: Float,
-    totalExamenes: Int,
+    dailyCurrent: Int,
+    dailyTarget: Int,
+    weeklyCurrent: Int,
+    weeklyTarget: Int,
+    monthlyCurrent: Int,
+    monthlyTarget: Int,
     dailyData: List<Float>,
     weeklyData: List<Float>,
     monthlyData: List<Float>
 ) {
-    // Definimos los periodos a seleccionar
-
     var selectedPeriod by remember { mutableStateOf(Period.Daily) }
     val chartData = when (selectedPeriod) {
         Period.Daily -> dailyData
@@ -62,85 +50,107 @@ fun GlobalStatsDialog(
         Period.Monthly -> monthlyData
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    // Cálculo del porcentaje según el segmento seleccionado
+    val percentage = when (selectedPeriod) {
+        Period.Daily -> if (dailyTarget > 0) dailyCurrent.toFloat() / dailyTarget * 100f else 0f
+        Period.Weekly -> if (weeklyTarget > 0) weeklyCurrent.toFloat() / weeklyTarget * 100f else 0f
+        Period.Monthly -> if (monthlyTarget > 0) monthlyCurrent.toFloat() / monthlyTarget * 100f else 0f
+    }
+
+    // Etiquetas para el eje X según el periodo
+    val xAxisLabels = when (selectedPeriod) {
+        Period.Daily -> listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
+        Period.Weekly -> listOf("1", "2", "3", "4")
+        Period.Monthly -> listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
                 .background(Color.White)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(16.dp)
             ) {
-                // Cabecera: "Meta global", total y porcentaje global
+                // Botón de retorno en la parte superior izquierda para cerrar
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Meta global",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "$totalExamenes exámenes",
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold)
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            contentDescription = "Cerrar",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
+                // Cabecera: porcentaje centrado en tipografía grande y con el color primario del tema
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "${"%.2f".format(globalProgress)}%",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            color = Color(0xFF2E7D32), // Verde
+                        text = "${"%.2f".format(percentage)}%",
+                        style = MaterialTheme.typography.displayMedium.copy(
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     )
-                }
-
-                // Ícono de estrella en la esquina superior derecha (sin acción por ahora)
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Estrella",
-                        tint = Color.Yellow,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = 4.dp)
-                            .size(24.dp)
-                    )
+                    // Se muestra la estrella solo si se alcanza o supera el 100%
+                    if (percentage >= 100f) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.star),
+                            contentDescription = "Meta alcanzada",
+                            tint = Color.Unspecified, // Se usa el color original del png
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botones para seleccionar el periodo
+                // Botones de periodo con tamaños iguales
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    PeriodButton(
-                        label = "Diario",
-                        selected = (selectedPeriod == Period.Daily),
-                        onClick = { selectedPeriod = Period.Daily }
-                    )
-                    PeriodButton(
-                        label = "Semanal",
-                        selected = (selectedPeriod == Period.Weekly),
-                        onClick = { selectedPeriod = Period.Weekly }
-                    )
-                    PeriodButton(
-                        label = "Mensual",
-                        selected = (selectedPeriod == Period.Monthly),
-                        onClick = { selectedPeriod = Period.Monthly }
-                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        PeriodButton(
+                            label = "Diario",
+                            selected = (selectedPeriod == Period.Daily)
+                        ) { selectedPeriod = Period.Daily }
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        PeriodButton(
+                            label = "Semanal",
+                            selected = (selectedPeriod == Period.Weekly)
+                        ) { selectedPeriod = Period.Weekly }
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        PeriodButton(
+                            label = "Mensual",
+                            selected = (selectedPeriod == Period.Monthly)
+                        ) { selectedPeriod = Period.Monthly }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Gráfico lineal
+                // Contenedor del gráfico: utiliza todo el ancho disponible
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -148,36 +158,59 @@ fun GlobalStatsDialog(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFFE3F2FD))
                 ) {
+                    val line = Line(
+                        label = when (selectedPeriod) {
+                            Period.Daily -> "Diario"
+                            Period.Weekly -> "Semanal"
+                            Period.Monthly -> "Mensual"
+                        },
+                        values = chartData.map { it.toDouble() },
+                        color = SolidColor(MaterialTheme.colorScheme.primary),
+                        drawStyle = DrawStyle.Stroke(width = 3.dp)
+                    )
+
                     LineChart(
-                        data = chartData,
+                        data = listOf(line),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(8.dp),
-                        lineColor = Color(0xFF673AB7)
+                            .padding(vertical = 8.dp) // Se elimina el padding horizontal para usar toda la pantalla
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Etiquetas del eje X con distribución equitativa
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
 
-                // Botón para cerrar
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Cerrar")
+                    xAxisLabels.forEach { label ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
-/**
- * PeriodButton: Botón minimalista para alternar entre periodos.
- */
 @Composable
-private fun PeriodButton(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun PeriodButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     val bgColor = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray
     val contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else Color.Black
+
     Text(
         text = label,
         color = contentColor,
@@ -185,65 +218,8 @@ private fun PeriodButton(label: String, selected: Boolean, onClick: () -> Unit) 
             .clip(RoundedCornerShape(50))
             .background(bgColor)
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+            .padding(vertical = 8.dp),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+        textAlign = TextAlign.Center
     )
-}
-
-/**
- * LineChart: Dibuja un gráfico de línea simple usando Canvas.
- */
-@Composable
-fun LineChart(
-    data: List<Float>,
-    modifier: Modifier = Modifier,
-    lineColor: Color = Color.Blue,
-    strokeWidth: Float = 4f
-) {
-    if (data.isEmpty()) return
-
-    Canvas(modifier = modifier) {
-        val minValue = data.minOrNull() ?: 0f
-        val maxValue = data.maxOrNull() ?: 0f
-        val range = maxValue - minValue
-
-        // Distancia horizontal entre cada punto
-        val spacing = size.width / (data.size - 1).coerceAtLeast(1)
-
-        val path = Path()
-
-        // Función para mapear el valor 'y' a coordenadas (invertido para que el mayor quede arriba)
-        fun getYPos(value: Float): Float {
-            val ratio = (value - minValue) / (range.coerceAtLeast(0.0001f))
-            return size.height - (ratio * size.height)
-        }
-
-        path.moveTo(0f, getYPos(data[0]))
-        for (i in 1 until data.size) {
-            val x = spacing * i
-            val y = getYPos(data[i])
-            path.lineTo(x, y)
-        }
-
-        drawPath(
-            path = path,
-            color = lineColor,
-            style = Stroke(
-                width = strokeWidth,
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-
-        // Dibujar círculos en cada punto
-        for (i in data.indices) {
-            val x = spacing * i
-            val y = getYPos(data[i])
-            drawCircle(
-                color = lineColor,
-                radius = strokeWidth * 1.2f,
-                center = androidx.compose.ui.geometry.Offset(x, y)
-            )
-        }
-    }
 }

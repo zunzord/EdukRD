@@ -11,6 +11,8 @@ plugins {
 android {
     namespace = "com.edukrd.app"
     compileSdk = 35
+    buildFeatures { compose = true }
+    composeOptions { kotlinCompilerExtensionVersion = "1.6.11" }
 
     defaultConfig {
         applicationId = "com.edukrd.app"
@@ -56,6 +58,8 @@ android {
     }
 }
 
+
+
 dependencies {
     // BOM para unificar las versiones de todas las librerías de Compose
     implementation(platform("androidx.compose:compose-bom:2025.03.00"))
@@ -69,12 +73,22 @@ dependencies {
     // Material3 para componentes modernos
     implementation("androidx.compose.material3:material3:1.3.1")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation ("com.github.tehras.charts:charts:1.0.0-alpha03")
+    implementation(files("libs/compose-charts-android-0.0.13.aar"))
 
     implementation("androidx.compose.material:material-icons-extended:<version>")
 
     //otros
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+
+    //
+
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    //Vico
+
+    implementation(files("libs/compose-m2-2.1.1.aar"))
+    implementation(files("libs/core-2.1.1.aar"))
+
 
 
     //Fonts Google

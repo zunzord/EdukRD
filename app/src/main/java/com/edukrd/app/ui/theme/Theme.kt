@@ -57,6 +57,7 @@ val EdukRDTypography = Typography(
         fontFamily = MontserratFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp
+
     ),
     headlineMedium = TextStyle(
         fontFamily = MontserratFamily,

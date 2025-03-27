@@ -102,8 +102,8 @@ fun LoginScreen(navController: NavController) {
                     .height(280.dp)
                     .padding(bottom = 24.dp)
             )
-            Text("Iniciar Sesión", style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(16.dp))
+            /*Text("Iniciar Sesión", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))*/
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it.trim() },

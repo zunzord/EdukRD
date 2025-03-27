@@ -3,6 +3,7 @@ pluginManagement {
         google() // Sin filtros para incluir todas las dependencias de Google
         mavenCentral()
         gradlePluginPortal()
+
     }
     resolutionStrategy {
         eachPlugin {
@@ -17,8 +18,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io")
+
     }
 }
 
 rootProject.name = "edukrd"
 include(":app")
+
