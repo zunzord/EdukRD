@@ -82,7 +82,9 @@ dependencies {
 
     //
 
+    implementation("com.github.MackHartley:RoundedProgressBar:3.0.0")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     //Vico
 

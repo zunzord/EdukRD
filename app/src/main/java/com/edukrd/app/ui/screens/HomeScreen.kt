@@ -59,6 +59,8 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.toArgb
+import com.mackhartley.roundedprogressbar.RoundedProgressBar
+
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
@@ -329,80 +331,65 @@ fun DailyProgressCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onDailyTargetClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(0.dp)
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Meta diaria", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Meta diaria",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            Spacer(Modifier.height(12.dp))
 
             val ratio = if (dailyTarget > 0) dailyCurrent.toFloat() / dailyTarget else 0f
-            val barColor = MaterialTheme.colorScheme.primary.toArgb()
+            val progressColor = MaterialTheme.colorScheme.primary.toArgb()
+            val backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f).toArgb()
 
-            // Contenedor donde se superpone la barra y el texto a la derecha
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp)
+                    .height(56.dp)
             ) {
-                // 1) BarChart con barra y sombra gris
                 AndroidView(
-                    modifier = Modifier.fillMaxSize()
-                        .requiredHeight(48.dp)         // barra dibujada doble grosor
-                        .offset(y = (-12).dp),         // desplaza mitad arriba para centrar
-                    factory = { context ->
-                        BarChart(context).apply {
-                            description.isEnabled = false
-                            legend.isEnabled = false
-
-                            // Dibujar la "sombra" para la parte no completada
-                            setDrawBarShadow(false)
-                            setDrawValueAboveBar(false)
-
-                            axisRight.isEnabled = false
-                            axisLeft.isEnabled = false
-                            xAxis.isEnabled = false
-
-                            setDrawGridBackground(false)
-                            setDrawBorders(false)
-                            setBackgroundColor(Color.Transparent.toArgb())
+                    factory = { ctx ->
+                        RoundedProgressBar(ctx).apply {
+                            val radiusPx = ctx.resources.displayMetrics.density * 28f
+                            setCornerRadius(radiusPx, radiusPx, radiusPx, radiusPx)
+                            setProgressDrawableColor(progressColor)
+                            setBackgroundDrawableColor(backgroundColor)
+                            showProgressText(false)
+                            setAnimationLength(600L)
                         }
                     },
-                    update = { chart ->
-                        val entry = BarEntry(0f, ratio)
-                        val dataSet = BarDataSet(listOf(entry), "").apply {
-                            color = barColor
-                            //barShadowColor = Color.LightGray.toArgb()
-                            setDrawValues(false)
-                        }
-                        // Usamos barWidth = 1f para que la barra ocupe todo el ancho
-                        val barData = BarData(dataSet).apply {
-                            barWidth = 1f
-                        }
-                        chart.data = barData
-                        chart.invalidate()
-                    }
+                    update = { bar ->
+                        bar.setProgressPercentage((ratio * 100).toDouble(), true)
+                    },
+                    modifier = Modifier.fillMaxSize()
                 )
 
-                // 2) Texto + icono superpuestos a la derecha
                 Row(
                     modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "$dailyCurrent/$dailyTarget",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                        text = "${(ratio * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                     )
-                    if (dailyCurrent >= dailyTarget) {
-                        Spacer(Modifier.width(4.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.star),
-                            tint = Color.Unspecified,
-                            contentDescription = "Meta diaria alcanzada",
+                            painter = painterResource(id = R.drawable.target),
+                            contentDescription = null,
                             modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = dailyCurrent.toString(),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }
@@ -410,6 +397,7 @@ fun DailyProgressCard(
         }
     }
 }
+
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
