@@ -63,10 +63,20 @@ import com.mackhartley.roundedprogressbar.RoundedProgressBar
 import com.edukrd.data.viewmodel.RatingViewModel
 import kotlin.math.roundToInt
 import androidx.compose.foundation.clickable
-
-
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
+
+
+
 
 
 @Composable
@@ -121,6 +131,7 @@ fun HomeScreen(navController: NavController) {
     val userViewModel: UserViewModel = hiltViewModel()
     val courseViewModel: CourseViewModel = hiltViewModel()
     val examViewModel: ExamViewModel = hiltViewModel()
+
 
     // Usamos el nuevo StateFlow con las metas y progreso (UserGoalsState)
     val userGoalsState by examViewModel.userGoalsState.collectAsState()
@@ -531,6 +542,11 @@ fun FullScreenCourseDetailSheet(
     val userRating by ratingVm.userRating.collectAsState()
     var showRatingDialog by remember { mutableStateOf(false) }
 
+    // Convertir avgRating a valor redondeado para estrellas
+    val displayedRating = remember(avgRating) {
+        (avgRating * 2).roundToInt() / 2f // Ej: 4.3 → 4.5
+    }
+
     LaunchedEffect(course.id) {
         ratingVm.loadRatings(course.id)
     }
@@ -541,6 +557,7 @@ fun FullScreenCourseDetailSheet(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
+        // Imagen y botón de volver
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -553,14 +570,14 @@ fun FullScreenCourseDetailSheet(
                     contentDescription = course.title,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(MaterialTheme.shapes.medium)
                 )
             } else {
                 Image(
                     painter = painterResource(id = R.drawable.ic_course),
                     contentDescription = "Imagen genérica",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
             }
             IconButton(
@@ -576,22 +593,22 @@ fun FullScreenCourseDetailSheet(
                 )
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
                 text = course.title,
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
+            val reward = if (!isCompleted) course.recompenza else course.recompenzaExtra
             Text(
                 text = "$coinReward monedas",
                 style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.primary)
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ⭐ Rating Row (clickable)
+            // Sección de rating: Al pulsar la fila se abre el popup para puntuar.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -634,31 +651,69 @@ fun FullScreenCourseDetailSheet(
         }
     }
 
-    // ⭐⭐ Rating Dialog ⭐⭐
+    // Popup de rating: se muestra al pulsar la fila de estrellas.
     if (showRatingDialog) {
-        Dialog(onDismissRequest = { showRatingDialog = false }) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
+        RatingPopup(
+            courseTitle = course.title,
+            onDismiss = { showRatingDialog = false },
+            onSubmit = { stars, feedback ->
+                ratingVm.submitRating(course.id, stars, feedback)
+                showRatingDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun RatingPopup(
+    courseTitle: String,
+    onDismiss: () -> Unit,
+    onSubmit: (stars: Int, feedback: String) -> Unit
+) {
+    var localStars by remember { mutableStateOf(0) }
+    var feedbackText by remember { mutableStateOf("") }
+    var showFeedbackField by remember { mutableStateOf(false) }
+    var isEnabled by remember { mutableStateOf(false) } // Habilitar solo con estrellas
+
+    // Actualiza isEnabled cuando se seleccionan estrellas
+    LaunchedEffect(localStars) {
+        isEnabled = localStars > 0
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            // ... (resto del estilo)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Card(shape = RoundedCornerShape(16.dp)) {
-                    Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                        repeat(5) { index ->
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                tint = if (index < (userRating ?: 0)) Color(0xFFFFD700) else Color.Gray,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clickable {
-                                        ratingVm.submitRating(course.id, index + 1)
-                                        showRatingDialog = false
-                                    }
-                            )
-                        }
-                    }
+                Text(
+                    text = courseTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Estrellas (código existente)
+
+                OutlinedButton(
+                    onClick = {
+                        onSubmit(localStars, feedbackText)
+                        onDismiss()
+                    },
+                    enabled = isEnabled,
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isEnabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline
+                    )
+                ) {
+                    Text(
+                        text = "OK",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }

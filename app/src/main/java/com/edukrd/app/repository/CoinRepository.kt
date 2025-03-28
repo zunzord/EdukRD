@@ -1,30 +1,36 @@
 package com.edukrd.app.repository
 
 import com.edukrd.app.models.Course
+import com.edukrd.app.usecase.GetServerDateUseCase
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import java.util.Calendar
+import java.time.ZoneId
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CoinRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val getServerDateUseCase: GetServerDateUseCase
 ) {
     private val dailyLimit = 5
 
-    private fun getDayRange(): Pair<Timestamp, Timestamp> {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val start = Timestamp(calendar.time)
-        calendar.add(Calendar.DAY_OF_MONTH, 1)
-        val end = Timestamp(calendar.time)
-        return start to end
+    /**
+     * Calcula el rango del día (inicio y fin) basado en la fecha del servidor obtenida desde GetServerDateUseCase.
+     * Esto permite que el conteo de transacciones se haga de acuerdo a la fecha oficial, no al reloj del dispositivo.
+     */
+    private suspend fun getServerDayRange(): Pair<Timestamp, Timestamp> {
+        // Se obtiene la fecha del servidor (LocalDate)
+        val serverLocalDate = getServerDateUseCase()  // Devuelve LocalDate
+        val zone = ZoneId.systemDefault()
+        // Inicio del día (00:00) para la fecha del servidor
+        val startInstant = serverLocalDate.atStartOfDay(zone).toInstant()
+        // Inicio del día siguiente
+        val endInstant = serverLocalDate.plusDays(1).atStartOfDay(zone).toInstant()
+        return Timestamp(Date.from(startInstant)) to Timestamp(Date.from(endInstant))
     }
 
     /**
@@ -32,9 +38,11 @@ class CoinRepository @Inject constructor(
      *  • Primera aprobación EVER → recompenza
      *  • Aprobaciones posteriores, hasta dailyLimit por día → recompenzaExtra
      *  • Si excede dailyLimit hoy → 0
+     *
+     * Se usan las fechas del servidor para calcular el rango del día.
      */
     suspend fun awardCoinsForCourse(userId: String, course: Course): Int {
-        // 1️⃣ ¿Ya aprobó este curso alguna vez?
+        // 1. Verificar si el usuario ya aprobó este curso alguna vez
         val everSnapshot = firestore.collection("examResults")
             .whereEqualTo("userId", userId)
             .whereEqualTo("courseId", course.id)
@@ -42,13 +50,12 @@ class CoinRepository @Inject constructor(
             .get()
             .await()
 
-        // Primera vez tomando examen
         if (everSnapshot.isEmpty) {
             return course.recompenza ?: 0
         }
 
-        // 2️⃣ Si ya aprobó antes, contamos aprobaciones de hoy
-        val (startOfDay, endOfDay) = getDayRange()
+        // 2. Contar las aprobaciones del día (usando la fecha del servidor)
+        val (startOfDay, endOfDay) = getServerDayRange()
         val todaySnapshot = firestore.collection("examResults")
             .whereEqualTo("userId", userId)
             .whereEqualTo("courseId", course.id)
@@ -58,12 +65,12 @@ class CoinRepository @Inject constructor(
             .get()
             .await()
 
-        return when {
-            todaySnapshot.size() < dailyLimit -> course.recompenzaExtra ?: 0
-            else -> 0
-        }
+        return if (todaySnapshot.size() < dailyLimit) course.recompenzaExtra ?: 0 else 0
     }
 
+    /**
+     * Actualiza las monedas del usuario incrementando el valor actual.
+     */
     suspend fun updateUserCoins(userId: String, coinsToAdd: Int): Boolean {
         return try {
             firestore.runTransaction { tx ->
@@ -77,13 +84,17 @@ class CoinRepository @Inject constructor(
         }
     }
 
+    /**
+     * Registra una transacción de monedas (por ejemplo, por aprobar un examen o canjear monedas).
+     * Se utiliza FieldValue.serverTimestamp() para que el servidor asigne la fecha y hora exacta de la transacción.
+     */
     suspend fun logCoinTransaction(userId: String, course: Course, coinsAwarded: Int): Boolean {
         return try {
             val data = mapOf(
                 "userId" to userId,
                 "courseId" to course.id,
                 "coinsAwarded" to coinsAwarded,
-                "timestamp" to Timestamp.now()
+                "timestamp" to FieldValue.serverTimestamp()
             )
             firestore.collection("coinTransactions")
                 .add(data)
