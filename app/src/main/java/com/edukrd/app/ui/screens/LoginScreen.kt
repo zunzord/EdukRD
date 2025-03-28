@@ -138,7 +138,7 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
-                if (isLoading) DotLoadingIndicator(modifier = Modifier.size(32.dp))
+                if (isLoading) DotLoadingIndicator(modifier = Modifier.size(24.dp))
                 else Text("Ingresar")
             }
             Spacer(modifier = Modifier.height(8.dp))

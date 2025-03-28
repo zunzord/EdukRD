@@ -62,7 +62,7 @@ fun CourseScreen(navController: NavController, courseId: String) {
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                DotLoadingIndicator(modifier = Modifier.size(56.dp))
+                DotLoadingIndicator(modifier = Modifier.size(32.dp))
             }
             error != null -> Box(
                 modifier = Modifier

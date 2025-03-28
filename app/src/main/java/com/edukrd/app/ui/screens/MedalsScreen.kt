@@ -60,12 +60,14 @@
         ) { innerPadding ->
             Box(
                 modifier = Modifier
+
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
             ) {
                 when {
                     loading -> {
-                        DotLoadingIndicator(modifier = Modifier.size(56.dp))
+                        DotLoadingIndicator(modifier = Modifier.size(32.dp))
                     }
                     error != null -> {
                         Text(

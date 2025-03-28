@@ -7,8 +7,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.edukrd.app.navigation.Screen
 import com.edukrd.app.ui.screens.*
+import com.edukrd.app.ui.screens.home.HomeScreen
 import com.edukrd.app.viewmodel.OnboardingViewModel
 import com.edukrd.app.viewmodel.ThemeViewModel
 

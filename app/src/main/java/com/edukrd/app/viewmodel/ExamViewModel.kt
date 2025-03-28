@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoField
 import javax.inject.Inject
+import com.edukrd.app.models.UserGoalsState
 
 
 
@@ -26,22 +27,7 @@ data class ExamState(
     val questions: List<Map<String, Any>> = emptyList()
 )
 
-data class UserGoalsState(
-    val dailyTarget: Int = 1,
-    val dailyCurrent: Int = 0,
 
-    val weeklyTarget: Int = 1,
-    val weeklyCurrent: Int = 0,
-
-    val monthlyTarget: Int = 1,
-    val monthlyCurrent: Int = 0,
-
-    /**
-     * Porcentaje global de progreso, de 0.0 a más de 100.0
-     * si supera las metas. (Ej: 120% si excede bastante).
-     */
-    val globalProgress: Float = 0f
-)
 
 data class DailyTarget(val target: Int, val streakCount: Int)
 
