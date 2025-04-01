@@ -25,6 +25,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Query
 import com.edukrd.app.viewmodel.RankingViewModel
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RankingScreen(navController: NavController) {

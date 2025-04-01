@@ -84,7 +84,7 @@ fun LoginScreen(navController: NavController) {
 
     Scaffold(
 
-        topBar = { TopAppBar(title = { Text("Iniciar Sesión") }) }
+       /* topBar = { TopAppBar(title = { Text("Iniciar Sesión") }) }*/
     ) { innerPadding ->
         Column(
             modifier = Modifier

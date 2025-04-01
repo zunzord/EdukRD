@@ -12,9 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,11 +25,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.edukrd.app.R
 import com.mackhartley.roundedprogressbar.RoundedProgressBar
 
+
 @Composable
 fun DailyProgressBar(
     dailyCurrent: Int,
     dailyTarget: Int,
-    onDailyTargetClick: () -> Unit
+    onDailyTargetClick: () -> Unit,
+    onBannerIconPosition: ((Offset) -> Unit)? = null
+
 ) {
     Card(
         modifier = Modifier
@@ -84,12 +90,19 @@ fun DailyProgressBar(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.target),
-                            contentDescription = "Target Icon",
-                            modifier = Modifier.size(24.dp),
-                            contentScale = ContentScale.Fit
-                        )
+                        Box(
+                            modifier = if (onBannerIconPosition != null)
+                                Modifier.onGloballyPositioned { coordinates ->
+                                    onBannerIconPosition(coordinates.positionInRoot())
+                                } else Modifier
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.target),
+                                contentDescription = "Target Icon",
+                                modifier = Modifier.size(24.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                         Text(
                             text = dailyCurrent.toString(),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)

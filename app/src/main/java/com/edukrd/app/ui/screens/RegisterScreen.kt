@@ -19,6 +19,8 @@ import com.edukrd.app.navigation.Screen
 import com.edukrd.app.viewmodel.AuthResult
 import com.edukrd.app.viewmodel.AuthViewModel
 import com.edukrd.app.viewmodel.UserViewModel
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,18 +86,20 @@ fun RegisterScreen(navController: NavController) {
     }
 
     Scaffold(
-        topBar = {
+        /*topBar = {
             TopAppBar(
                 title = { Text("Registro") }
             )
-        }
+        }*/
     ) { innerPadding ->
+        // Agregamos verticalScroll y ajustamos la alineación
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Top, // O simplemente omitir verticalArrangement
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(text = "Registro", style = MaterialTheme.typography.headlineMedium)

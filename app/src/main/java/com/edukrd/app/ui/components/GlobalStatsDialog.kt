@@ -16,17 +16,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import ir.ehsannarmani.compose_charts.LineChart
-import androidx.compose.ui.text.font.FontWeight
 import ir.ehsannarmani.compose_charts.models.Line
 import ir.ehsannarmani.compose_charts.models.DrawStyle
-import androidx.compose.ui.text.style.TextAlign
 import com.edukrd.app.R
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.ui.window.DialogProperties
-
 
 enum class Period { Daily, Weekly, Monthly }
 
@@ -44,10 +43,16 @@ fun GlobalStatsDialog(
     monthlyData: List<Float>
 ) {
     var selectedPeriod by remember { mutableStateOf(Period.Daily) }
+
+    // Proveer datos seguros en caso de listas vacías
+    val safeDailyData = if (dailyData.isEmpty()) listOf(0f) else dailyData
+    val safeWeeklyData = if (weeklyData.isEmpty()) listOf(0f) else weeklyData
+    val safeMonthlyData = if (monthlyData.isEmpty()) listOf(0f) else monthlyData
+
     val chartData = when (selectedPeriod) {
-        Period.Daily -> dailyData
-        Period.Weekly -> weeklyData
-        Period.Monthly -> monthlyData
+        Period.Daily -> safeDailyData
+        Period.Weekly -> safeWeeklyData
+        Period.Monthly -> safeMonthlyData
     }
 
     // Cálculo del porcentaje según el segmento seleccionado
@@ -64,7 +69,9 @@ fun GlobalStatsDialog(
         Period.Monthly -> listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")
     }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -113,7 +120,7 @@ fun GlobalStatsDialog(
                         Icon(
                             painter = painterResource(id = R.drawable.star),
                             contentDescription = "Meta alcanzada",
-                            tint = Color.Unspecified, // Se usa el color original del png
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -168,12 +175,11 @@ fun GlobalStatsDialog(
                         color = SolidColor(MaterialTheme.colorScheme.primary),
                         drawStyle = DrawStyle.Stroke(width = 3.dp)
                     )
-
                     LineChart(
                         data = listOf(line),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 8.dp) // Se elimina el padding horizontal para usar toda la pantalla
+                            .padding(vertical = 8.dp)
                     )
                 }
 
@@ -182,7 +188,6 @@ fun GlobalStatsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 8.dp)
-
                 ) {
                     xAxisLabels.forEach { label ->
                         Box(modifier = Modifier.weight(1f)) {

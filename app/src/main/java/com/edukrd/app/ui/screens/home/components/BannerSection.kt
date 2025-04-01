@@ -17,13 +17,15 @@ import androidx.compose.ui.unit.dp
 import com.edukrd.app.R
 import com.edukrd.app.models.UserGoalsState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 
 @Composable
 fun BannerSection(
     bannerUrl: String,
     userName: String,
     userGoalsState: UserGoalsState,
-    onDailyTargetClick: () -> Unit
+    onDailyTargetClick: () -> Unit,
+    onBannerIconPosition: ((Offset) -> Unit)? = null
 ) {
     Column {
         Box(
@@ -65,7 +67,8 @@ fun BannerSection(
         DailyProgressBar(
             dailyCurrent = userGoalsState.dailyCurrent,
             dailyTarget = userGoalsState.dailyTarget,
-            onDailyTargetClick = onDailyTargetClick
+            onDailyTargetClick = onDailyTargetClick,
+            onBannerIconPosition = onBannerIconPosition
         )
     }
 }
