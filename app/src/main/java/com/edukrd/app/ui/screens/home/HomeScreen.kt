@@ -44,6 +44,7 @@ import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.ui.layout.positionInWindow
 import android.util.Log
 import com.edukrd.app.ui.screens.home.DailyProgressBar
+import androidx.compose.foundation.layout.Arrangement
 
 
 
@@ -207,7 +208,7 @@ fun HomeScreen(navController: NavController) {
 
                                 BannerSection(
 
-                                    bannerUrl = courses.firstOrNull()?.imageUrl ?: "",
+                                    //bannerUrl = courses.firstOrNull()?.imageUrl ?: "",
                                     userName = userData?.name ?: "User",
                                     userGoalsState = userGoalsState,
                                     onDailyTargetClick = { showGlobalStatsDialog = true },
@@ -296,7 +297,7 @@ fun HomeScreen(navController: NavController) {
             description = "Toca aquí para ver tus objetivos diarios, semanales y mensuales.",
             targetAlignment = Alignment.TopCenter,
             arrowAlignment = Alignment.Center,
-            Log.d("TutorialOffsets", "Medallas arrowOffsetX=${with(density) { bannerOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { bannerOffset.y.toDp().value.toInt() +24}}"),
+            Log.d("TutorialOffsets", "Objetivos arrowOffsetX=${with(density) { bannerOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { bannerOffset.y.toDp().value.toInt() +24}}"),
             /*arrowOffsetX=with(density) { bannerOffset.x.toDp().value.toInt() },
             arrowOffsetY=with(density) { bannerOffset.y.toDp().value.toInt() },*/
             bubbleOffsetX = 0,

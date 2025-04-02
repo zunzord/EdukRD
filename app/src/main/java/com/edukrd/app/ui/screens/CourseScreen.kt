@@ -23,6 +23,7 @@ import com.edukrd.app.R
 import com.edukrd.app.ui.components.AsyncImageWithShimmer
 import com.edukrd.app.ui.components.DotLoadingIndicator
 import com.edukrd.app.viewmodel.CourseViewModel
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,14 +101,14 @@ fun CourseScreen(navController: NavController, courseId: String) {
                                 contentDescription = "Imagen principal",
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(0.dp))
                             )
                         } else {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_course),
                                 contentDescription = "Fallback",
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Fit
                             )
                         }
                     }
@@ -116,11 +117,13 @@ fun CourseScreen(navController: NavController, courseId: String) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = selectedCourse!!.title,
+                            //textAlign = TextAlign.Justify,
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = selectedCourse!!.description,
+                            //textAlign = TextAlign.Justify,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -161,13 +164,14 @@ fun MinimalCourseContentItem(page: Map<String, Any>) {
                 contentDescription = "Imagen del contenido",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 150.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .heightIn(min = 300.dp)
+                    .clip(RoundedCornerShape(0.dp))
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
         Text(
             text = textContent,
+            textAlign = TextAlign.Justify,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground
         )

@@ -5,6 +5,7 @@ plugins {
     id("com.google.gms.google-services")
     id("dagger.hilt.android.plugin")
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.10"
     // id("com.google.firebase.crashlytics") // Opcional si lo deseas
 }
 
@@ -21,6 +22,17 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "SUPABASE_PROJECT_REF",
+            "\"${project.findProperty("SUPABASE_PROJECT_REF") ?: "default_project_ref"}\""
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_PUBLIC_ANON_KEY",
+            "\"${project.findProperty("SUPABASE_PUBLIC_ANON_KEY") ?: "default_key"}\""
+        )
     }
 
     buildTypes {
@@ -49,11 +61,11 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true // Habilita la generación de BuildConfig
+        buildConfig = true
     }
 
     composeOptions {
-        // La versión del compilador de Compose debe ser compatible con el BOM usado
+        // La versión del compilador de Compose debe ser compatible con el BOM
         kotlinCompilerExtensionVersion = "1.5.15"
     }
 }
@@ -82,6 +94,7 @@ dependencies {
     implementation("com.github.MackHartley:RoundedProgressBar:3.0.0")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.compose.ui:ui")
 
 
     //Vico
@@ -93,11 +106,6 @@ dependencies {
 
     //Fonts Google
     implementation("androidx.compose.ui:ui-text-google-fonts:1.3.0")
-
-    // Shimmer placeholder for Compose
-
-
-
 
 
 
@@ -135,10 +143,37 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
 
+    //sopabase
+
+    //implementation("io.github.jan-tennert.supabase-kt:supabase-kt:0.1.0")
+
     //google-pager
 
     implementation("com.google.accompanist:accompanist-pager:0.31.5-beta")
     implementation("com.google.accompanist:accompanist-pager-indicators:0.31.5-beta")
+
+
+    //knor
+
+    val ktorVersion = "2.2.4"
+
+    // Ktor Client Core
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+
+    // Motor de red: CIO (puedes usar OkHttp si prefieres)
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+
+    // Para manejar la negociación de contenido (JSON)
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+
+    // Para serializar/deserializar JSON con Kotlinx
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+
+    // Librería de Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
+
+
+
 
     // Dependencias para testing
     testImplementation("junit:junit:4.13.2")

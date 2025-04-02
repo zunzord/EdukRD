@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
 
 
 
@@ -43,20 +44,23 @@ fun TopHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 24.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSettingsClick) {
-                    Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                        onSettingsIconPosition?.invoke(coordinates.positionInRoot())
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        // Obtenemos posición ABSOLUTA (ventana) del ícono de Settings
+                        val windowPosition = coordinates.localToWindow(Offset.Zero)
+                        onSettingsIconPosition?.invoke(windowPosition)
                     }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -67,17 +71,19 @@ fun TopHeader(
             }
             IconButton(
                 onClick = onLogoutClick,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier
+                    .size(36.dp)
+                    .onGloballyPositioned { coordinates ->
+                        // Obtenemos posición ABSOLUTA (ventana) del ícono de Logout
+                        val windowPosition = coordinates.localToWindow(Offset.Zero)
+                        onLogoutIconPosition?.invoke(windowPosition)
+                    }
             ) {
-                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                    onLogoutIconPosition?.invoke(coordinates.positionInRoot())
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.PowerSettingsNew,
-                        contentDescription = "Logout",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.PowerSettingsNew,
+                    contentDescription = "Logout",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
             }
         }
     }

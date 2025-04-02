@@ -1,29 +1,24 @@
 package com.edukrd.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.edukrd.app.viewmodel.AuthResult
+import com.edukrd.app.R
+import com.edukrd.app.ui.components.DotLoadingIndicator
+import com.edukrd.app.ui.components.UnderlinedTextField
 import com.edukrd.app.viewmodel.AuthViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import com.edukrd.app.R
-import com.edukrd.app.ui.components.DotLoadingIndicator
-
-
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +57,7 @@ fun LoginScreen(navController: NavController) {
     LaunchedEffect(authViewModel) {
         authViewModel.authResult.collect { result ->
             when (result) {
-                is AuthResult.Success -> {
+                is com.edukrd.app.viewmodel.AuthResult.Success -> {
                     val firebaseUser = FirebaseAuth.getInstance().currentUser
                     if (firebaseUser != null && !firebaseUser.isEmailVerified) {
                         FirebaseAuth.getInstance().signOut()
@@ -74,7 +69,7 @@ fun LoginScreen(navController: NavController) {
                     }
                     isLoading = false
                 }
-                is AuthResult.Error -> {
+                is com.edukrd.app.viewmodel.AuthResult.Error -> {
                     errorMessage = result.message
                     isLoading = false
                 }
@@ -82,10 +77,7 @@ fun LoginScreen(navController: NavController) {
         }
     }
 
-    Scaffold(
-
-       /* topBar = { TopAppBar(title = { Text("Iniciar Sesión") }) }*/
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -102,23 +94,19 @@ fun LoginScreen(navController: NavController) {
                     .height(280.dp)
                     .padding(bottom = 24.dp)
             )
-            /*Text("Iniciar Sesión", style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(16.dp))*/
-            OutlinedTextField(
+            UnderlinedTextField(
                 value = email,
                 onValueChange = { email = it.trim() },
-                label = { Text("Correo electrónico") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                label = "Correo electrónico",
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
+            UnderlinedTextField(
                 value = password,
                 onValueChange = { password = it.trim() },
-                label = { Text("Contraseña") },
+                label = "Contraseña",
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                isPassword = true
             )
             Spacer(modifier = Modifier.height(16.dp))
             if (errorMessage.isNotEmpty()) {

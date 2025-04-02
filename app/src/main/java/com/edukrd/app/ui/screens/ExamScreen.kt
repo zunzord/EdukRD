@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,12 +16,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.edukrd.app.navigation.Screen
+import com.edukrd.app.ui.components.DotLoadingIndicator
+import com.edukrd.app.ui.components.AsyncImageWithShimmer
 import com.edukrd.app.viewmodel.ExamViewModel
 import com.edukrd.app.viewmodel.ExamState
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import com.edukrd.app.ui.components.DotLoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +35,7 @@ fun ExamScreen(
     val error by examViewModel.error.collectAsState()
     val submitResult by examViewModel.submitResult.collectAsState()
 
+    // Mapa para almacenar las respuestas seleccionadas, usando la questionId
     val selectedAnswers = remember { mutableStateMapOf<String, Int>() }
     val scope = rememberCoroutineScope()
 
@@ -47,12 +51,17 @@ fun ExamScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Opciones")
+                    }
                 }
             )
         }
     ) { padding ->
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
@@ -71,14 +80,20 @@ fun ExamScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(exam.questions) { question ->
+                            // Extraemos los datos necesarios
                             val questionId = question["questionId"] as? String ?: return@items
                             val questionText = question["question"] as? String ?: ""
-                            val options = question["answers"] as? List<String> ?: emptyList()
+                            // Usamos las opciones randomizadas, en lugar de las originales
+                            val randomizedOptions = question["randomizedOptions"] as? List<String> ?: emptyList()
 
                             Column {
-                                Text(questionText, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = questionText,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+
                                 Spacer(modifier = Modifier.height(8.dp))
-                                options.forEachIndexed { index, answer ->
+                                randomizedOptions.forEachIndexed { index, answer ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         RadioButton(
                                             selected = selectedAnswers[questionId] == index,
@@ -95,16 +110,17 @@ fun ExamScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     val canSubmit = selectedAnswers.size == exam.questions.size
                     Row(
-                        Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Button(onClick = { navController.popBackStack() }) { Text("Volver") }
                         Button(
                             onClick = {
+                                // Se evalúan las respuestas usando el nuevo índice correcto
                                 val correctCount = exam.questions.count { q ->
                                     val qId = q["questionId"] as? String ?: ""
-                                    val correctOption = (q["correctOption"] as? Long)?.toInt() ?: -1
-                                    selectedAnswers[qId] == correctOption
+                                    val newCorrectOption = q["newCorrectOption"] as? Int ?: -1
+                                    selectedAnswers[qId] == newCorrectOption
                                 }
                                 val finalScore = (correctCount.toDouble() / exam.questions.size * 100).toInt()
                                 val passed = finalScore >= exam.passingScore

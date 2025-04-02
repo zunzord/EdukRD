@@ -86,13 +86,35 @@ class ExamViewModel @Inject constructor(
             try {
                 val exam = examRepository.getExamByCourseId(courseId)
                 if (exam != null) {
-                    val questions = examRepository.getQuestionsForExam(exam.id)
+                    // Obtenemos las preguntas originales
+                    val originalQuestions = examRepository.getQuestionsForExam(exam.id)
+                    // Randomizamos el orden de las preguntas
+                    val randomizedQuestions = originalQuestions.shuffled().map { question ->
+                        // Extraemos las opciones originales
+                        val originalOptions = question["answers"] as? List<String> ?: emptyList()
+                        // Randomizamos las opciones
+                        val randomizedOptions = originalOptions.shuffled()
+                        // Obtenemos el índice correcto original y la respuesta correcta
+                        val originalCorrectIndex = (question["correctOption"] as? Long)?.toInt() ?: -1
+                        val correctAnswer = if (originalCorrectIndex in originalOptions.indices) {
+                            originalOptions[originalCorrectIndex]
+                        } else {
+                            ""
+                        }
+                        // Calculamos el nuevo índice correcto en el orden aleatorio
+                        val newCorrectIndex = randomizedOptions.indexOf(correctAnswer)
+                        // Retornamos el mapa original, añadiendo "randomizedOptions" y "newCorrectOption"
+                        question + mapOf(
+                            "randomizedOptions" to randomizedOptions,
+                            "newCorrectOption" to newCorrectIndex
+                        )
+                    }
                     _examState.value = ExamState(
                         examId = exam.id,
                         courseId = exam.courseId,
                         passingScore = exam.passingScore,
                         totalQuestions = exam.totalQuestions,
-                        questions = questions
+                        questions = randomizedQuestions
                     )
                 } else {
                     _error.value = "No se encontró examen para este curso."
@@ -103,6 +125,7 @@ class ExamViewModel @Inject constructor(
             _loading.value = false
         }
     }
+
 
     fun submitExamResult(courseId: String, score: Int, passed: Boolean) {
         viewModelScope.launch {

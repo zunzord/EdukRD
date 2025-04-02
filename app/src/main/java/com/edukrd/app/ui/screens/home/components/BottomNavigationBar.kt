@@ -17,9 +17,13 @@ import androidx.navigation.NavController
 import com.edukrd.app.R
 
 @Composable
-fun BottomNavigationBar(navController: NavController, currentRoute: String, onMedalsIconPosition: ((Offset) -> Unit)? = null,
-                        onStoreIconPosition: ((Offset) -> Unit)? = null, onRankingIconPosition: ((Offset) -> Unit)? = null) {
-
+fun BottomNavigationBar(
+    navController: NavController,
+    currentRoute: String,
+    onMedalsIconPosition: (Offset) -> Unit, // Quitamos "? = null" (parámetro obligatorio)
+    onStoreIconPosition: (Offset) -> Unit,
+    onRankingIconPosition: (Offset) -> Unit
+) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.primary,
         tonalElevation = 8.dp
@@ -39,18 +43,20 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String, onMe
         NavigationBarItem(
             selected = currentRoute == "medals",
             onClick = { if (currentRoute != "medals") navController.navigate("medals") },
-
             icon = {
                 Box(
-                    modifier = if (onMedalsIconPosition != null)
-                        Modifier.onGloballyPositioned { coordinates ->
-                            onMedalsIconPosition(coordinates.positionInRoot())
-                        } else Modifier
+                    modifier = Modifier
+                        .onGloballyPositioned { coordinates ->
+                            // Obtenemos posición absoluta en la pantalla
+                            val localPosition = coordinates.positionInRoot()
+                            onMedalsIconPosition(coordinates.localToWindow(localPosition))
+                        }
                 ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_medal),
-                    contentDescription = "Medals"
-                )}
+                    Icon(
+                        painter = painterResource(R.drawable.ic_medal),
+                        contentDescription = "Medals"
+                    )
+                }
             },
             label = { Text("Medals") },
             alwaysShowLabel = false
@@ -60,15 +66,17 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String, onMe
             onClick = { if (currentRoute != "store") navController.navigate("store") },
             icon = {
                 Box(
-                    modifier = if (onStoreIconPosition != null)
-                        Modifier.onGloballyPositioned { coordinates ->
-                            onStoreIconPosition(coordinates.positionInRoot())
-                        } else Modifier
+                    modifier = Modifier
+                        .onGloballyPositioned { coordinates ->
+                            val localPosition = coordinates.positionInRoot()
+                            onStoreIconPosition(coordinates.localToWindow(localPosition))
+                        }
                 ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_store),
-                    contentDescription = "Store"
-                )}
+                    Icon(
+                        painter = painterResource(R.drawable.ic_store),
+                        contentDescription = "Store"
+                    )
+                }
             },
             label = { Text("Store") },
             alwaysShowLabel = false
@@ -78,15 +86,17 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String, onMe
             onClick = { if (currentRoute != "ranking") navController.navigate("ranking") },
             icon = {
                 Box(
-                    modifier = if (onRankingIconPosition != null)
-                        Modifier.onGloballyPositioned { coordinates ->
-                            onRankingIconPosition(coordinates.positionInRoot())
-                        } else Modifier
+                    modifier = Modifier
+                        .onGloballyPositioned { coordinates ->
+                            val localPosition = coordinates.positionInRoot()
+                            onRankingIconPosition(coordinates.localToWindow(localPosition))
+                        }
                 ) {
-                Icon(
-                    painter = painterResource(R.drawable.ranking),
-                    contentDescription = "Ranking"
-                )}
+                    Icon(
+                        painter = painterResource(R.drawable.ranking),
+                        contentDescription = "Ranking"
+                    )
+                }
             },
             label = { Text("Ranking") },
             alwaysShowLabel = false

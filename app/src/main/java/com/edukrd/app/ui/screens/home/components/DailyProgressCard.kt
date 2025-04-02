@@ -32,7 +32,6 @@ fun DailyProgressBar(
     dailyTarget: Int,
     onDailyTargetClick: () -> Unit,
     onBannerIconPosition: ((Offset) -> Unit)? = null
-
 ) {
     Card(
         modifier = Modifier
@@ -90,19 +89,19 @@ fun DailyProgressBar(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Box(
-                            modifier = if (onBannerIconPosition != null)
-                                Modifier.onGloballyPositioned { coordinates ->
-                                    onBannerIconPosition(coordinates.positionInRoot())
-                                } else Modifier
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.target),
-                                contentDescription = "Target Icon",
-                                modifier = Modifier.size(24.dp),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
+                        // *** Cambio clave: Medición directa en el Image sin Box ***
+                        Image(
+                            painter = painterResource(id = R.drawable.target),
+                            contentDescription = "Target Icon",
+                            modifier = Modifier
+                                .size(24.dp)
+                                .onGloballyPositioned { coordinates ->
+                                    // Obtiene posición ABSOLUTA en la pantalla
+                                    val windowOffset = coordinates.localToWindow(Offset.Zero)
+                                    onBannerIconPosition?.invoke(windowOffset)
+                                },
+                            contentScale = ContentScale.Fit
+                        )
                         Text(
                             text = dailyCurrent.toString(),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
