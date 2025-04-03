@@ -31,6 +31,6 @@ fun SplashScreen(navController: NavHostController) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        DotLoadingIndicator(modifier = Modifier.size(32.dp))
+        DotLoadingIndicator(modifier = Modifier.align(Alignment.Center).size(56.dp))
     }
 }

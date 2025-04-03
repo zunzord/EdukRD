@@ -69,7 +69,7 @@ fun RankingScreen(navController: NavController) {
         ) {
             when {
                 loading -> {
-                    DotLoadingIndicator(modifier = Modifier.size(56.dp))
+                    DotLoadingIndicator(modifier = Modifier.align(Alignment.Center).size(56.dp))
                 }
                 error != null -> {
                     Text(

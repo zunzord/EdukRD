@@ -67,7 +67,7 @@
             ) {
                 when {
                     loading -> {
-                        DotLoadingIndicator(modifier = Modifier.size(32.dp))
+                        DotLoadingIndicator(modifier = Modifier.align(Alignment.Center).size(56.dp))
                     }
                     error != null -> {
                         Text(

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.edukrd.app.models.User
 import com.edukrd.app.repository.UserRepository
+import com.edukrd.app.usecase.ScheduleNotificationUseCase
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class UserViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val scheduleNotificationUseCase: ScheduleNotificationUseCase
 ) : ViewModel() {
 
     sealed class NavigationCommand {
@@ -56,10 +58,20 @@ class UserViewModel @Inject constructor(
                 return@launch
             }
 
+
             try {
                 val data = userRepository.getUserData(uid)
                 _userData.value = data
                 _coins.value = data?.coins ?: 0
+
+
+                if (data != null) {
+                    scheduleNotificationUseCase(
+                        notificationsEnabled = data.notificationsEnabled,
+                        frequency = data.notificationFrequency
+                    )
+                }
+
 
                 when {
                     data == null -> _navigationCommand.trySend(NavigationCommand.ContactSupport)

@@ -123,10 +123,10 @@ fun LoginScreen(navController: NavController) {
                         authViewModel.login(email, password)
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.width(150.dp).height(40.dp),
                 enabled = !isLoading
             ) {
-                if (isLoading) DotLoadingIndicator(modifier = Modifier.size(24.dp))
+                if (isLoading) DotLoadingIndicator(modifier = Modifier.size(56.dp))
                 else Text("Ingresar")
             }
             Spacer(modifier = Modifier.height(8.dp))

@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -20,7 +19,7 @@ import com.edukrd.app.R
 fun BottomNavigationBar(
     navController: NavController,
     currentRoute: String,
-    onMedalsIconPosition: (Offset) -> Unit, // Quitamos "? = null" (parámetro obligatorio)
+    onMedalsIconPosition: (Offset) -> Unit, // Parámetro obligatorio
     onStoreIconPosition: (Offset) -> Unit,
     onRankingIconPosition: (Offset) -> Unit
 ) {
@@ -45,12 +44,10 @@ fun BottomNavigationBar(
             onClick = { if (currentRoute != "medals") navController.navigate("medals") },
             icon = {
                 Box(
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            // Obtenemos posición absoluta en la pantalla
-                            val localPosition = coordinates.positionInRoot()
-                            onMedalsIconPosition(coordinates.localToWindow(localPosition))
-                        }
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        // Medimos la posición absoluta usando localToWindow(Offset.Zero)
+                        onMedalsIconPosition(coordinates.localToWindow(Offset.Zero))
+                    }
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_medal),
@@ -65,18 +62,14 @@ fun BottomNavigationBar(
             selected = currentRoute == "store",
             onClick = { if (currentRoute != "store") navController.navigate("store") },
             icon = {
-                Box(
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            val localPosition = coordinates.positionInRoot()
-                            onStoreIconPosition(coordinates.localToWindow(localPosition))
-                        }
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_store),
-                        contentDescription = "Store"
-                    )
-                }
+                Icon(
+                    painter = painterResource(R.drawable.ic_store),
+                    contentDescription = "Store",
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        // Mide la posición absoluta del Icon directamente
+                        onStoreIconPosition(coordinates.localToWindow(Offset.Zero))
+                    }
+                )
             },
             label = { Text("Store") },
             alwaysShowLabel = false
@@ -86,11 +79,9 @@ fun BottomNavigationBar(
             onClick = { if (currentRoute != "ranking") navController.navigate("ranking") },
             icon = {
                 Box(
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            val localPosition = coordinates.positionInRoot()
-                            onRankingIconPosition(coordinates.localToWindow(localPosition))
-                        }
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        onRankingIconPosition(coordinates.localToWindow(Offset.Zero))
+                    }
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ranking),

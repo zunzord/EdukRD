@@ -23,6 +23,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.edukrd.app.R
 
 @Composable
 private fun shimmerBrush(translate: Float): Brush {
@@ -85,41 +90,15 @@ fun DotLoadingIndicator(
     modifier: Modifier = Modifier,
     dotSize: Dp = 16.dp
 ) {
-    val transition = rememberInfiniteTransition()
-    val delays = listOf(0, 150, 300)
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        delays.forEachIndexed { index, delay ->
-            val scale by transition.animateFloat(
-                initialValue = 0.6f,
-                targetValue = 1.2f,
-                animationSpec = infiniteRepeatable(
-                    tween(800, delayMillis = delay, easing = FastOutSlowInEasing),
-                    RepeatMode.Reverse
-                )
-            )
-            val alpha by transition.animateFloat(
-                initialValue = 0.3f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    tween(800, delayMillis = delay, easing = FastOutSlowInEasing),
-                    RepeatMode.Reverse
-                )
-            )
-            Box(
-                Modifier
-                    .width(dotSize)
-                    .height(dotSize)
-                    .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
-                    .shadow(elevation = 4.dp, shape = CircleShape)
-                    .background(
-                        color = if (index % 2 == 0) Color(0xFF00008B) else Color(0xFF8B0000),
-                        shape = CircleShape
-                    )
-            )
-        }
+
+    val composition = rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.loading_animation)).value
+
+
+    if (composition != null) {
+        LottieAnimation(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+            modifier = modifier.size(dotSize)
+        )
     }
 }

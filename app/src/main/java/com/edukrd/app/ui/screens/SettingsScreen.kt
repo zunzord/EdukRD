@@ -73,7 +73,7 @@ fun SettingsScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                DotLoadingIndicator(modifier = Modifier.size(56.dp))
+                DotLoadingIndicator(modifier = Modifier.align(Alignment.Center).size(56.dp))
             }
         } else {
             val currentUserData = userData

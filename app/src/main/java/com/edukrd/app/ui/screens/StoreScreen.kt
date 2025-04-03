@@ -89,7 +89,7 @@ fun StoreScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    DotLoadingIndicator(modifier = Modifier.size(56.dp))
+                    DotLoadingIndicator(modifier = Modifier.align(Alignment.Center).size(56.dp))
                 }
             } else if (error != null) {
                 // Mensaje de error

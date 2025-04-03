@@ -1,5 +1,6 @@
 package com.edukrd.app.ui.screens.home
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -41,12 +43,10 @@ import com.edukrd.app.viewmodel.ExamViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.ModalBottomSheetLayout
-import androidx.compose.ui.layout.positionInWindow
-import android.util.Log
 import com.edukrd.app.ui.screens.home.DailyProgressBar
-import androidx.compose.foundation.layout.Arrangement
-
-
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,9 +108,10 @@ fun HomeScreen(navController: NavController) {
     var navTiendaOffset by remember { mutableStateOf(Offset.Zero) }
     var navRankingOffset by remember { mutableStateOf(Offset.Zero) }
 
+    // Variable para almacenar la posición del contenedor raíz (para conversión de coordenadas)
+    var rootOffset by remember { mutableStateOf(Offset.Zero) }
+
     // Activación automática del tutorial:
-    // Si el usuario ya completó el onboarding (primerAcceso == false) y el flag persistente indica que aún no se mostró,
-    // se activa.
     LaunchedEffect(userData) {
         userData?.let { user ->
             if (!user.primerAcceso && !TutorialPreferenceHelper.isTutorialShown(context) && !hasShownTutorial) {
@@ -143,105 +144,127 @@ fun HomeScreen(navController: NavController) {
             }
         }
     ) {
-        Scaffold(
-            topBar = {
-                TopHeader(
-                    userName = userData?.name ?: "User",
-                    onSettingsClick = { navController.navigate("settings") },
-                    onLogoutClick = {
-                        navController.navigate("login") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    },
-                    onSettingsIconPosition = { offset -> settingsOffset = offset },
-                    onLogoutIconPosition = { offset -> logoutOffset = offset }
-                )
-            },
-            bottomBar = { BottomNavigationBar(navController, currentRoute = "home",onMedalsIconPosition = { offset -> navMedallasOffset = offset },
-                onStoreIconPosition = { offset -> navTiendaOffset = offset },
-                onRankingIconPosition = { offset -> navRankingOffset = offset }) },
-            floatingActionButton = {
-                // Botón tutotial.
-                IconButton(
-                    onClick = { showTutorialOverlay = true },
-                    modifier = Modifier.background(Color.White, shape = MaterialTheme.shapes.small)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "Mostrar tutorial",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+        // Contenedor raíz que captura su posición global para la conversión de coordenadas
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    // Guardamos la posición del contenedor raíz en coordenadas de ventana
+                    rootOffset = coordinates.localToWindow(Offset.Zero)
                 }
-            },
-            floatingActionButtonPosition = FabPosition.Start
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                when {
-                    isLoading -> {
-                        LoadingPlaceholder()
-                    }
-                    courseError != null -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = courseError!!,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.titleMedium
-                            )
+        ) {
+            Scaffold(
+                topBar = {
+                    TopHeader(
+                        userName = userData?.name ?: "User",
+                        onSettingsClick = { navController.navigate("settings") },
+                        onLogoutClick = {
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        },
+                        onSettingsIconPosition = { offset ->
+                            settingsOffset = offset
+                        },
+                        onLogoutIconPosition = { offset ->
+                            logoutOffset = offset
                         }
+                    )
+                },
+                bottomBar = {
+                    BottomNavigationBar(
+                        navController,
+                        currentRoute = "home",
+                        onMedalsIconPosition = { offset ->
+                            navMedallasOffset = offset
+                        },
+                        onStoreIconPosition = { offset ->
+                            navTiendaOffset = offset
+                        },
+                        onRankingIconPosition = { offset ->
+                            navRankingOffset = offset
+                        }
+                    )
+                },
+                floatingActionButton = {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White)
+                            .clickable { showTutorialOverlay = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Mostrar tutorial",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
-                    else -> {
-                        // Contenido principal de HomeScreen.
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .background(MaterialTheme.colorScheme.background)
-                        ) {
-                            // BannerSection con medición de posición.
+                },
 
+                        floatingActionButtonPosition = FabPosition.Start
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    when {
+                        isLoading -> {
+                            LoadingPlaceholder()
+                        }
+                        courseError != null -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = courseError!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                        else -> {
+                            // Contenido principal de HomeScreen.
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .background(MaterialTheme.colorScheme.background)
+                            ) {
+                                // BannerSection con medición de posición.
                                 BannerSection(
-
-                                    //bannerUrl = courses.firstOrNull()?.imageUrl ?: "",
                                     userName = userData?.name ?: "User",
                                     userGoalsState = userGoalsState,
                                     onDailyTargetClick = { showGlobalStatsDialog = true },
-                                    onBannerIconPosition = { offset: Offset -> bannerOffset = offset }
+                                    onBannerIconPosition = { offset ->
+                                        bannerOffset = offset
+                                    }
                                 )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                // CourseGrid
+                                CourseGrid(
+                                    courses = courses,
+                                    passedCourseIds = passedCourseIds,
+                                    coinRewards = coinRewards,
+                                    onCourseClick = { course ->
+                                        selectedCourse = course
+                                        coroutineScope.launch { sheetState.show() }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
 
-                            Spacer(modifier = Modifier.height(16.dp))
-                            // CourseGrid (sin medición adicional, pues normalmente se muestra completo)
-                            CourseGrid(
-                                courses = courses,
-                                passedCourseIds = passedCourseIds,
-                                coinRewards = coinRewards,
-                                onCourseClick = { course ->
-                                    selectedCourse = course
-                                    coroutineScope.launch { sheetState.show() }
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
-                            // Ejemplo: Medición de botones de la barra de navegación (si no se miden en BottomNavigationBar)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-
-                                    Text("Medallas", modifier = Modifier.padding(8.dp))
-
-
-
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                   /* Text("Medallas", modifier = Modifier.padding(8.dp))
                                     Text("Tienda", modifier = Modifier.padding(8.dp))
-
-
-                                    Text("Ranking", modifier = Modifier.padding(8.dp))
-
+                                    Text("Ranking", modifier = Modifier.padding(8.dp))*/
+                                }
                             }
                         }
                     }
@@ -250,7 +273,7 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    // Diálogo modal para mostrar las estadísticas globales (resumen de metas)
+
     if (showGlobalStatsDialog) {
         GlobalStatsDialog(
             onDismiss = { showGlobalStatsDialog = false },
@@ -266,9 +289,15 @@ fun HomeScreen(navController: NavController) {
         )
     }
 
-    // Construcción de la lista de pasos del tutorial utilizando las posiciones medidas.
-
+    // Construcción de la lista de pasos del tutorial utilizando las posiciones medidas y convertidas a coordenadas locales relativas al contenedor raíz.
     val density = LocalDensity.current
+
+    // Función de conversión: resta el offset de la raíz a la posición medida.
+    val convertOffset: (Offset) -> Offset = { measuredOffset ->
+        measuredOffset - rootOffset
+    }
+
+
 
     val tutorialSteps = listOf(
         TutorialStep(
@@ -277,7 +306,8 @@ fun HomeScreen(navController: NavController) {
             description = "Toca aquí para acceder a la configuración de la app y modificar tus preferencias.",
             targetAlignment = Alignment.TopStart,
             arrowAlignment = Alignment.TopStart,
-            Log.d("TutorialOffsets", "Settings arrowOffsetX=${with(density) { settingsOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { settingsOffset.y.toDp().value.toInt() }}"),
+            arrowOffsetX = with(density) { convertOffset(settingsOffset).x.toDp().value.toInt() },
+            arrowOffsetY = with(density) { convertOffset(settingsOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
             bubbleOffsetY = 48
         ),
@@ -287,7 +317,8 @@ fun HomeScreen(navController: NavController) {
             description = "Toca aquí para salir de la aplicación.",
             targetAlignment = Alignment.TopEnd,
             arrowAlignment = Alignment.TopEnd,
-            Log.d("TutorialOffsets", "Logout arrowOffsetX=${with(density) { logoutOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { logoutOffset.y.toDp().value.toInt() }}"),
+            arrowOffsetX = with(density) { convertOffset(logoutOffset).x.toDp().value.toInt() },
+            arrowOffsetY = with(density) { convertOffset(logoutOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
             bubbleOffsetY = 48
         ),
@@ -296,10 +327,9 @@ fun HomeScreen(navController: NavController) {
             title = "Barra de Objetivos",
             description = "Toca aquí para ver tus objetivos diarios, semanales y mensuales.",
             targetAlignment = Alignment.TopCenter,
-            arrowAlignment = Alignment.Center,
-            Log.d("TutorialOffsets", "Objetivos arrowOffsetX=${with(density) { bannerOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { bannerOffset.y.toDp().value.toInt() +24}}"),
-            /*arrowOffsetX=with(density) { bannerOffset.x.toDp().value.toInt() },
-            arrowOffsetY=with(density) { bannerOffset.y.toDp().value.toInt() },*/
+            arrowAlignment = Alignment.TopCenter,
+            arrowOffsetX = with(density) { convertOffset(bannerOffset).x.toDp().value.toInt() },
+            arrowOffsetY = with(density) { (convertOffset(bannerOffset).y.toDp().value.toInt() + 24) },
             bubbleOffsetX = 0,
             bubbleOffsetY = 48
         ),
@@ -307,31 +337,37 @@ fun HomeScreen(navController: NavController) {
             id = 4,
             title = "Medallas",
             description = "Presiona este botón para ver tu medallero y logros.",
-            targetAlignment = Alignment.BottomStart,
-            arrowAlignment = Alignment.BottomStart,
-            Log.d("TutorialOffsets", "Medallas arrowOffsetX=${with(density) { navMedallasOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { navMedallasOffset.y.toDp().value.toInt() }}"),
+            targetAlignment = Alignment.Center,
+            arrowAlignment = Alignment.BottomCenter,
+            arrowOffsetX = with(density) { convertOffset(navMedallasOffset).x.toDp().value.toInt() },
+
+            arrowOffsetY = with(density) { convertOffset(navMedallasOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
-            bubbleOffsetY = -56
+            bubbleOffsetY = 10
         ),
         TutorialStep(
             id = 5,
             title = "Tienda",
             description = "Accede a la tienda para canjear tus monedas.",
-            targetAlignment = Alignment.BottomCenter,
+            targetAlignment = Alignment.Center,
             arrowAlignment = Alignment.BottomCenter,
-            Log.d("TutorialOffsets", "Tienda arrowOffsetX=${with(density) { navTiendaOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { navTiendaOffset.y.toDp().value.toInt() }}"),
+            arrowOffsetX = with(density) { convertOffset(navTiendaOffset).x.toDp().value.toInt() },
+            arrowOffsetY = with(density) { convertOffset(navTiendaOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
-            bubbleOffsetY = -56
+            bubbleOffsetY = 10
         ),
+
+
         TutorialStep(
             id = 6,
             title = "Ranking",
             description = "Consulta el ranking para ver tu posición.",
-            targetAlignment = Alignment.BottomEnd,
-            arrowAlignment = Alignment.BottomEnd,
-            Log.d("TutorialOffsets", "Ranking arrowOffsetX=${with(density) { navRankingOffset.x.toDp().value.toInt() }}, arrowOffsetY=${with(density) { navRankingOffset.y.toDp().value.toInt() }}"),
+            targetAlignment = Alignment.Center,
+            arrowAlignment = Alignment.BottomCenter,
+            arrowOffsetX = with(density) { convertOffset(navRankingOffset).x.toDp().value.toInt() },
+            arrowOffsetY = with(density) { convertOffset(navRankingOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
-            bubbleOffsetY = -56
+            bubbleOffsetY = 10
         )
     )
 
