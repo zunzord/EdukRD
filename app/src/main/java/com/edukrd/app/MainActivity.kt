@@ -13,9 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import androidx.navigation.compose.rememberNavController
-import com.edukrd.app.navigation.NavGraph
-import com.edukrd.app.navigation.Screen
+import com.edukrd.app.ui.components.MainScaffold
 import com.edukrd.app.ui.theme.EdukRDTheme
 import com.edukrd.app.viewmodel.AuthResult
 import com.edukrd.app.viewmodel.AuthViewModel
@@ -31,7 +29,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // Solicita el permiso de notificaciones al iniciar la aplicación
+            // Solicita el permiso de notificaciones al iniciar
             RequestNotificationPermission()
 
             val themeViewModel: ThemeViewModel = hiltViewModel()
@@ -40,9 +38,6 @@ class MainActivity : ComponentActivity() {
 
             val themePreference by themeViewModel.themePreference.collectAsState()
             val authResult by authViewModel.authResult.collectAsState(initial = null)
-            val navigationCommand by userViewModel.navigationCommand.collectAsState(initial = null)
-
-            val navController = rememberNavController()
 
             LaunchedEffect(authResult) {
                 if (authResult is AuthResult.Success) {
@@ -51,7 +46,8 @@ class MainActivity : ComponentActivity() {
             }
 
             EdukRDTheme(darkTheme = (themePreference == "dark")) {
-                NavGraph(navController = navController, startDestination = Screen.Splash.route, themeViewModel = themeViewModel)
+                // contenedor para barra de navegacion inferior persistente
+                MainScaffold()
             }
         }
     }
@@ -73,7 +69,7 @@ fun RequestNotificationPermission() {
         }
     )
 
-    // Verifica y solicita el permiso solo para Android 13 (API 33) o superior.
+    // valida y solicita el permiso
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(

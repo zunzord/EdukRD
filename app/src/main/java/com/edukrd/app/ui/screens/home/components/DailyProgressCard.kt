@@ -17,14 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.input.pointer.pointerInput
 import com.edukrd.app.R
 import com.mackhartley.roundedprogressbar.RoundedProgressBar
-
 
 @Composable
 fun DailyProgressBar(
@@ -58,22 +57,36 @@ fun DailyProgressBar(
                     .fillMaxWidth()
                     .height(56.dp)
             ) {
-                AndroidView(
-                    factory = { ctx ->
-                        RoundedProgressBar(ctx).apply {
-                            val radiusPx = ctx.resources.displayMetrics.density * 28f
-                            setCornerRadius(radiusPx, radiusPx, radiusPx, radiusPx)
-                            setProgressDrawableColor(progressColor)
-                            setBackgroundDrawableColor(backgroundColor)
-                            showProgressText(false)
-                            setAnimationLength(600L)
+                // Tecnica de envolver en un box para consumir los eventos táctiles,
+                // asi resolvimos errores que se producen al realizar gestos de arrastre.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    awaitPointerEvent()
+                                }
+                            }
                         }
-                    },
-                    update = { bar ->
-                        bar.setProgressPercentage((ratio * 100).toDouble(), true)
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            RoundedProgressBar(ctx).apply {
+                                val radiusPx = ctx.resources.displayMetrics.density * 28f
+                                setCornerRadius(radiusPx, radiusPx, radiusPx, radiusPx)
+                                setProgressDrawableColor(progressColor)
+                                setBackgroundDrawableColor(backgroundColor)
+                                showProgressText(false)
+                                setAnimationLength(600L)
+                            }
+                        },
+                        update = { bar ->
+                            bar.setProgressPercentage((ratio * 100).toDouble(), true)
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 Row(
                     modifier = Modifier
@@ -89,14 +102,12 @@ fun DailyProgressBar(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // *** Cambio clave: Medición directa en el Image sin Box ***
                         Image(
                             painter = painterResource(id = R.drawable.target),
                             contentDescription = "Target Icon",
                             modifier = Modifier
                                 .size(24.dp)
                                 .onGloballyPositioned { coordinates ->
-                                    // Obtiene posición ABSOLUTA en la pantalla
                                     val windowOffset = coordinates.localToWindow(Offset.Zero)
                                     onBannerIconPosition?.invoke(windowOffset)
                                 },

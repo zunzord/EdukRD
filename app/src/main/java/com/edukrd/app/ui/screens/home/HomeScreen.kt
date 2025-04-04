@@ -171,7 +171,7 @@ fun HomeScreen(navController: NavController) {
                         }
                     )
                 },
-                bottomBar = {
+                /*bottomBar = {
                     BottomNavigationBar(
                         navController,
                         currentRoute = "home",
@@ -185,7 +185,7 @@ fun HomeScreen(navController: NavController) {
                             navRankingOffset = offset
                         }
                     )
-                },
+                },*/
                 floatingActionButton = {
                     Box(
                         modifier = Modifier

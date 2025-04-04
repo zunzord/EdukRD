@@ -175,6 +175,11 @@ dependencies {
     // Librería de Kotlin Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
+    //animacion transiciones pantalla
+
+    implementation("androidx.compose.animation:animation:1.5.4")
+
+
 
 
 

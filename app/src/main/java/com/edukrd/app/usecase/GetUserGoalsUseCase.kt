@@ -3,8 +3,6 @@ package com.edukrd.app.usecase
 import com.edukrd.app.models.UserGoalsState
 import com.edukrd.app.repository.ExamRepository
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 import java.time.temporal.ChronoField
 import javax.inject.Inject
@@ -16,17 +14,17 @@ import kotlin.math.max
  * Utiliza ExamRepository para recuperar las fechas de exámenes aprobados
  * y calcula los valores: dailyTarget, dailyCurrent, weeklyTarget, weeklyCurrent,
  * monthlyTarget, monthlyCurrent y globalProgress.
- *
- * En un escenario real, podrías utilizar GetServerDateUseCase para obtener la fecha del servidor;
- * en este ejemplo se utiliza LocalDate.now().
+ * e utiliza GetServerDateUseCase para obtener la fecha del servidor,
  */
+
 class GetUserGoalsUseCase @Inject constructor(
     private val examRepository: ExamRepository,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val getServerDateUseCase: GetServerDateUseCase  // Inyectamos el use case para obtener la fecha del servidor.
 ) {
     suspend operator fun invoke(): UserGoalsState {
-        // Obtiene la fecha actual; en producción, podrías usar GetServerDateUseCase().
-        val today = LocalDate.now()
+        // Obtiene la fecha actual del servidor.
+        val today: LocalDate = getServerDateUseCase()
 
         // Obtiene todas las fechas de exámenes aprobados para el usuario.
         val uid = auth.currentUser?.uid ?: return UserGoalsState() // Retorna un estado vacío en caso de error
