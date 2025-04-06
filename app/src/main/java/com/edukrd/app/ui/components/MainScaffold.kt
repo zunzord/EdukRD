@@ -14,6 +14,12 @@ import com.edukrd.app.navigation.NavGraph
 import com.edukrd.app.navigation.Screen
 import com.edukrd.app.ui.screens.home.components.BottomNavigationBar
 import com.edukrd.app.viewmodel.ThemeViewModel
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+
 
 @Composable
 fun MainScaffold(
@@ -25,6 +31,7 @@ fun MainScaffold(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     // Si currentBackStackEntry es nulo, usamos cadena vacía para evitar mostrar la barra
     val route = currentBackStackEntry?.destination?.route ?: ""
+
 
     // Definimos las rutas donde NO se debe mostrar la barra inferior.
     val routesWithoutBottomBar = listOf(
@@ -39,6 +46,10 @@ fun MainScaffold(
     )
     // La barra se muestra solo si la ruta actual no es una de las excluidas y no es cadena vacía.
     val shouldShowBottomBar = route.isNotEmpty() && route !in routesWithoutBottomBar
+
+    var navMedallasOffset by remember { mutableStateOf(Offset.Zero) }
+    var navTiendaOffset by remember { mutableStateOf(Offset.Zero) }
+    var navRankingOffset by remember { mutableStateOf(Offset.Zero) }
 
     Scaffold(
         modifier = modifier,
@@ -58,7 +69,10 @@ fun MainScaffold(
             NavGraph(
                 navController = navController,
                 startDestination = Screen.Splash.route,
-                themeViewModel = themeViewModel
+                themeViewModel = themeViewModel,
+                navMedallasOffset = navMedallasOffset,
+                navTiendaOffset = navTiendaOffset,
+                navRankingOffset = navRankingOffset
             )
         }
     }

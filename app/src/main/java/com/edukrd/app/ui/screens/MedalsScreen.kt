@@ -45,7 +45,7 @@
             topBar = {
                 TopAppBar(
                     title = { Text("Medallero", color = Color.White) },
-                    navigationIcon = {
+                    /*navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
@@ -53,7 +53,7 @@
                                 tint = Color.White
                             )
                         }
-                    },
+                    },*/
                     colors = topAppBarColors(containerColor = dominicanBlue)
                 )
             }

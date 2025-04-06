@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.edukrd.app.R
 import com.edukrd.app.models.Course
@@ -51,16 +52,19 @@ fun ExperienceCard(
                     contentScale = ContentScale.Crop
                 )
             }
+
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .background(Color.Black.copy(alpha = 0.4f))
                     .padding(8.dp)
             ) {
                 Text(
                     text = course.title,
-                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
             if (isCompleted && course.medalla.isNotBlank()) {

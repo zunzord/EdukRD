@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.res.painterResource
+import com.edukrd.app.R
 
 
 
@@ -43,7 +45,7 @@ fun TopHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -72,7 +74,7 @@ fun TopHeader(
             IconButton(
                 onClick = onLogoutClick,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .onGloballyPositioned { coordinates ->
                         // Obtenemos posición ABSOLUTA (ventana) del ícono de Logout
                         val windowPosition = coordinates.localToWindow(Offset.Zero)
@@ -80,7 +82,7 @@ fun TopHeader(
                     }
             ) {
                 Icon(
-                    imageVector = Icons.Default.PowerSettingsNew,
+                    painter = painterResource(id = R.drawable.logout), // Reemplaza "ic_logout" por el nombre de tu recurso
                     contentDescription = "Logout",
                     tint = MaterialTheme.colorScheme.onPrimary
                 )

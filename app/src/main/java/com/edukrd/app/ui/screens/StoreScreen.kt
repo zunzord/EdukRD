@@ -36,7 +36,7 @@ fun StoreScreen(
     val storeViewModel: StoreViewModel = hiltViewModel()
     val userViewModel: UserViewModel = hiltViewModel()
 
-    // Observamos el saldo de monedas del usuario
+    // se valida saldo monedas
     val coins by userViewModel.coins.collectAsState()
 
     // Observamos estados de StoreViewModel
@@ -58,14 +58,14 @@ fun StoreScreen(
         storeViewModel.loadAvailableItems()
         storeViewModel.loadRedeemedItems()
         storeViewModel.loadReceivedItems()
-        userViewModel.loadCurrentUserData() // Para actualizar 'coins'
+        userViewModel.loadCurrentUserData() // Para actualizar 'monedas'
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Tienda", color = Color.White) },
-                navigationIcon = {
+                /*navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
@@ -73,7 +73,7 @@ fun StoreScreen(
                             tint = Color.White
                         )
                     }
-                },
+                },*/
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
             )
         }

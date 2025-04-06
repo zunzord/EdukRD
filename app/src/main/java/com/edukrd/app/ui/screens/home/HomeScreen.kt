@@ -35,7 +35,7 @@ import com.edukrd.app.ui.screens.home.components.BottomNavigationBar
 import com.edukrd.app.ui.screens.home.components.FullScreenCourseDetailSheet
 import com.edukrd.app.ui.screens.home.components.TopHeader
 import com.edukrd.app.ui.screens.home.components.TutorialOverlay
-import com.edukrd.app.ui.screens.home.components.TutorialStep
+import com.edukrd.app.ui.screens.home.components.TutorialItem
 import com.edukrd.app.util.TutorialPreferenceHelper
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.edukrd.app.viewmodel.CourseViewModel
@@ -49,13 +49,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTiendaOffset: Offset,navRankingOffset: Offset) {
     // Inyectamos los tres ViewModels originales
     val userViewModel: UserViewModel = hiltViewModel()
     val courseViewModel: CourseViewModel = hiltViewModel()
     val examViewModel: ExamViewModel = hiltViewModel()
+
+
+
+
 
     // Cargar datos al iniciar
     LaunchedEffect(Unit) {
@@ -104,9 +109,9 @@ fun HomeScreen(navController: NavController) {
     var settingsOffset by remember { mutableStateOf(Offset.Zero) }
     var logoutOffset by remember { mutableStateOf(Offset.Zero) }
     var bannerOffset by remember { mutableStateOf(Offset.Zero) }
-    var navMedallasOffset by remember { mutableStateOf(Offset.Zero) }
-    var navTiendaOffset by remember { mutableStateOf(Offset.Zero) }
-    var navRankingOffset by remember { mutableStateOf(Offset.Zero) }
+
+
+
 
     // Variable para almacenar la posición del contenedor raíz (para conversión de coordenadas)
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
@@ -261,9 +266,9 @@ fun HomeScreen(navController: NavController) {
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
-                                   /* Text("Medallas", modifier = Modifier.padding(8.dp))
-                                    Text("Tienda", modifier = Modifier.padding(8.dp))
-                                    Text("Ranking", modifier = Modifier.padding(8.dp))*/
+
+
+
                                 }
                             }
                         }
@@ -289,14 +294,22 @@ fun HomeScreen(navController: NavController) {
         )
     }
 
-    // Construcción de la lista de pasos del tutorial utilizando las posiciones medidas y convertidas a coordenadas locales relativas al contenedor raíz.
-    val density = LocalDensity.current
 
-    // Función de conversión: resta el offset de la raíz a la posición medida.
+/*    val density = LocalDensity.current
+
+
     val convertOffset: (Offset) -> Offset = { measuredOffset ->
         measuredOffset - rootOffset
+
+
+
+
+
     }
 
+    val medallasArrowX = with(density) { convertOffset(navMedallasOffset).x.toDp().value.toInt() }
+    val medallasArrowY = with(density) { convertOffset(navMedallasOffset).y.toDp().value.toInt() }
+    Log.d("TutorialStep", "Medallas Arrow - X: $medallasArrowX, Y: $medallasArrowY")
 
 
     val tutorialSteps = listOf(
@@ -305,7 +318,7 @@ fun HomeScreen(navController: NavController) {
             title = "Configuración",
             description = "Toca aquí para acceder a la configuración de la app y modificar tus preferencias.",
             targetAlignment = Alignment.TopStart,
-            arrowAlignment = Alignment.TopStart,
+           // arrowAlignment = Alignment.TopStart,
             arrowOffsetX = with(density) { convertOffset(settingsOffset).x.toDp().value.toInt() },
             arrowOffsetY = with(density) { convertOffset(settingsOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
@@ -340,7 +353,6 @@ fun HomeScreen(navController: NavController) {
             targetAlignment = Alignment.Center,
             arrowAlignment = Alignment.BottomCenter,
             arrowOffsetX = with(density) { convertOffset(navMedallasOffset).x.toDp().value.toInt() },
-
             arrowOffsetY = with(density) { convertOffset(navMedallasOffset).y.toDp().value.toInt() },
             bubbleOffsetX = 0,
             bubbleOffsetY = 10
@@ -370,11 +382,11 @@ fun HomeScreen(navController: NavController) {
             bubbleOffsetY = 10
         )
     )
-
+*/
     // Overlay tutorial secuencial: se muestra sobre HomeScreen.
     if (showTutorialOverlay) {
         TutorialOverlay(
-            tutorialSteps = tutorialSteps,
+
             onDismiss = { showTutorialOverlay = false }
         )
     }

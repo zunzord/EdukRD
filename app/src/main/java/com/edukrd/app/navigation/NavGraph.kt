@@ -16,13 +16,18 @@ import com.edukrd.app.ui.screens.home.HomeScreen
 import com.edukrd.app.viewmodel.OnboardingViewModel
 import com.edukrd.app.viewmodel.ThemeViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.geometry.Offset
+
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavGraph(
     navController: NavHostController,
     startDestination: String,
-    themeViewModel: ThemeViewModel
+    themeViewModel: ThemeViewModel,
+    navMedallasOffset: Offset,
+    navTiendaOffset: Offset,
+    navRankingOffset: Offset
 ) {
     // Observa el back stack actual para disparar la animación en cada cambio
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -33,12 +38,12 @@ fun NavGraph(
             // Define una transición compuesta: desliza y desvanecimiento
             slideInHorizontally(
                 initialOffsetX = { it },
-                animationSpec = tween(durationMillis = 300)
-            ) + fadeIn(animationSpec = tween(durationMillis = 300)) with
+                animationSpec = tween(durationMillis = 500)
+            ) + fadeIn(animationSpec = tween(durationMillis = 500)) with
                     slideOutHorizontally(
                         targetOffsetX = { -it },
-                        animationSpec = tween(durationMillis = 300)
-                    ) + fadeOut(animationSpec = tween(durationMillis = 300))
+                        animationSpec = tween(durationMillis = 500)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 500))
         }
     ) { targetState ->
 
@@ -65,7 +70,7 @@ fun NavGraph(
                 ForgotPasswordScreen(navController)
             }
             composable(Screen.Home.route) {
-                HomeScreen(navController)
+                HomeScreen(navController,navMedallasOffset = navMedallasOffset,navTiendaOffset = navTiendaOffset,navRankingOffset = navRankingOffset)
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(navController, themeViewModel)

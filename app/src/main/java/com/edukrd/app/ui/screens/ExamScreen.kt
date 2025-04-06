@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -20,7 +21,6 @@ import com.edukrd.app.ui.components.DotLoadingIndicator
 import com.edukrd.app.ui.components.AsyncImageWithShimmer
 import com.edukrd.app.viewmodel.ExamViewModel
 import com.edukrd.app.viewmodel.ExamState
-import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,106 +52,87 @@ fun ExamScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
-                actions = {
-                    IconButton(onClick = { }) {
+                /*actions = {
+                    IconButton(onClick = { /* Por ahora sin funciones */ }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Opciones")
                     }
-                }
+                }*/
             )
         }
-    ) { padding ->
-        // Box para controlar padding
-        Box(
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+                .padding(innerPadding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when {
-                loading -> {
-                    DotLoadingIndicator(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(56.dp)
-                    )
-                }
-                error != null -> {
-                    Text(
-                        error!!,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                examState == null -> {
-                    Text(
-                        "No se encontró examen para este curso.",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                loading -> DotLoadingIndicator(modifier = Modifier.size(56.dp))
+                error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
+                examState == null -> Text("No se encontró examen para este curso.", color = MaterialTheme.colorScheme.error)
                 else -> {
-                    // Contenido principal cuando se han cargado los datos del examen.
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    val exam: ExamState = examState!!
+                    Text("Preguntas", style = MaterialTheme.typography.titleLarge)
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val exam: ExamState = examState!!
-                       // Text("Preguntas", style = MaterialTheme.typography.titleLarge)
+                        items(exam.questions) { question ->
+                            // Extraemos los datos necesarios
+                            val questionId = question["questionId"] as? String ?: return@items
+                            val questionText = question["question"] as? String ?: ""
+                            // respuestas randomizadas
+                            val randomizedOptions = question["randomizedOptions"] as? List<String> ?: emptyList()
 
-                        LazyColumn(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(exam.questions) { question ->
-                                // Extraemos los datos necesarios
-                                val questionId = question["questionId"] as? String ?: return@items
-                                val questionText = question["question"] as? String ?: ""
-                                // Usamos las opciones randomizadas, en lugar de las originales
-                                val randomizedOptions = question["randomizedOptions"] as? List<String> ?: emptyList()
+                            Column {
+                                Text(
+                                    text = questionText,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                )
 
-                                Column {
-                                    Text(
-                                        text = questionText,
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    randomizedOptions.forEachIndexed { index, answer ->
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            RadioButton(
-                                                selected = selectedAnswers[questionId] == index,
-                                                onClick = { selectedAnswers[questionId] = index }
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(answer)
-                                        }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                randomizedOptions.forEachIndexed { index, answer ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        RadioButton(
+                                            selected = selectedAnswers[questionId] == index,
+                                            onClick = { selectedAnswers[questionId] = index }
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(answer)
                                     }
                                 }
                             }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        val canSubmit = selectedAnswers.size == exam.questions.size
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Button(onClick = { navController.popBackStack() }) { Text("Volver") }
-                            Button(
-                                onClick = {
-                                    // Evaluacion respuestas
-                                    val correctCount = exam.questions.count { q ->
-                                        val qId = q["questionId"] as? String ?: ""
-                                        val newCorrectOption = q["newCorrectOption"] as? Int ?: -1
-                                        selectedAnswers[qId] == newCorrectOption
-                                    }
-                                    val finalScore = (correctCount.toDouble() / exam.questions.size * 100).toInt()
-                                    val passed = finalScore >= exam.passingScore
-                                    examViewModel.submitExamResult(courseId, finalScore, passed)
-                                },
-                                enabled = canSubmit
-                            ) { Text("Finalizar") }
-                        }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // valida si se pueden enviar todas las respuestas.
+                    val canSubmit = selectedAnswers.size == exam.questions.size
+
+
+
+                    Button(
+                        onClick = {
+
+                            val correctCount = exam.questions.count { q ->
+                                val qId = q["questionId"] as? String ?: ""
+                                val newCorrectOption = q["newCorrectOption"] as? Int ?: -1
+                                selectedAnswers[qId] == newCorrectOption
+                            }
+                            val finalScore = (correctCount.toDouble() / exam.questions.size * 100).toInt()
+                            val passed = finalScore >= exam.passingScore
+                            examViewModel.submitExamResult(courseId, finalScore, passed)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = canSubmit,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (canSubmit) MaterialTheme.colorScheme.primary else Color.White,
+                            contentColor = if (canSubmit) Color.White else Color.Black
+                        )
+                    ) {
+                        Text("Finalizar")
                     }
                 }
             }

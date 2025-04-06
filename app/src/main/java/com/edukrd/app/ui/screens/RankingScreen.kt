@@ -48,7 +48,7 @@ fun RankingScreen(navController: NavController) {
         topBar = {
             TopAppBar(
                 title = { Text("Ranking de Monedas", color = Color.White) },
-                navigationIcon = {
+               /* navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
@@ -56,7 +56,7 @@ fun RankingScreen(navController: NavController) {
                             tint = Color.White
                         )
                     }
-                },
+                },*/
                 colors = topAppBarColors(containerColor = dominicanBlue)
             )
         }

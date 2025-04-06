@@ -44,23 +44,26 @@ fun GlobalStatsDialog(
 ) {
     var selectedPeriod by remember { mutableStateOf(Period.Daily) }
 
-    // Proveer datos seguros en caso de listas vacías
-    val safeDailyData = if (dailyData.isEmpty()) listOf(0f) else dailyData
-    val safeWeeklyData = if (weeklyData.isEmpty()) listOf(0f) else weeklyData
-    val safeMonthlyData = if (monthlyData.isEmpty()) listOf(0f) else monthlyData
+    // Aseguramos que las listas tengan al menos dos datos para graficar
+    val safeDailyData = if (dailyData.size < 2) dailyData + listOf(0f) else dailyData
+    val safeWeeklyData = if (weeklyData.size < 2) weeklyData + listOf(0f) else weeklyData
+    val safeMonthlyData = if (monthlyData.size < 2) monthlyData + listOf(0f) else monthlyData
 
+    // Usamos los datos según el periodo seleccionado (sin alterar la lógica del UseCase)
     val chartData = when (selectedPeriod) {
         Period.Daily -> safeDailyData
         Period.Weekly -> safeWeeklyData
         Period.Monthly -> safeMonthlyData
     }
 
-    // Cálculo del porcentaje según el segmento seleccionado
+    // --- MODIFICACIÓN: Calcular el porcentaje usando los valores pasados sin sobrecalculo ---
+    // Nota: Estos cálculos se hacen "directamente" a partir de los datos del UseCase.
     val percentage = when (selectedPeriod) {
         Period.Daily -> if (dailyTarget > 0) dailyCurrent.toFloat() / dailyTarget * 100f else 0f
         Period.Weekly -> if (weeklyTarget > 0) weeklyCurrent.toFloat() / weeklyTarget * 100f else 0f
         Period.Monthly -> if (monthlyTarget > 0) monthlyCurrent.toFloat() / monthlyTarget * 100f else 0f
     }
+    // --- FIN MODIFICACIÓN ---
 
     // Etiquetas para el eje X según el periodo
     val xAxisLabels = when (selectedPeriod) {
@@ -84,7 +87,7 @@ fun GlobalStatsDialog(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                // Botón de retorno en la parte superior izquierda para cerrar
+                // Botón de retorno para cerrar el diálogo
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -101,7 +104,7 @@ fun GlobalStatsDialog(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                // Cabecera: porcentaje centrado en tipografía grande y con el color primario del tema
+                // Cabecera: muestra el porcentaje calculado
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -114,7 +117,7 @@ fun GlobalStatsDialog(
                             fontWeight = FontWeight.Bold
                         )
                     )
-                    // Se muestra la estrella solo si se alcanza o supera el 100%
+                    // Muestra la estrella si se alcanza o supera el 100%
                     if (percentage >= 100f) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
@@ -128,7 +131,7 @@ fun GlobalStatsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botones de periodo con tamaños iguales
+                // Botones para seleccionar el periodo (sin cambios en la lógica)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,7 +160,7 @@ fun GlobalStatsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Contenedor del gráfico: utiliza todo el ancho disponible
+                // Contenedor del gráfico
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -183,7 +186,7 @@ fun GlobalStatsDialog(
                     )
                 }
 
-                // Etiquetas del eje X con distribución equitativa
+                // Etiquetas del eje X
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
