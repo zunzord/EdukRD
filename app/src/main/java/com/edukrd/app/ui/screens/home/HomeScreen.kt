@@ -1,53 +1,64 @@
 package com.edukrd.app.ui.screens.home
 
-import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
-import androidx.compose.material.rememberModalBottomSheetState
-import androidx.compose.material3.*
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.runtime.*
+import androidx.compose.material.rememberModalBottomSheetState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.edukrd.app.models.UserGoalsState
 import com.edukrd.app.ui.components.GlobalStatsDialog
 import com.edukrd.app.ui.components.LoadingPlaceholder
-import com.edukrd.app.ui.screens.home.BannerSection
-import com.edukrd.app.ui.screens.home.CourseGrid
-import com.edukrd.app.ui.screens.home.components.BottomNavigationBar
+import com.edukrd.app.ui.components.MotivationalBubble
+import com.edukrd.app.ui.components.ReportDialog
 import com.edukrd.app.ui.screens.home.components.FullScreenCourseDetailSheet
 import com.edukrd.app.ui.screens.home.components.TopHeader
 import com.edukrd.app.ui.screens.home.components.TutorialOverlay
-import com.edukrd.app.ui.screens.home.components.TutorialItem
 import com.edukrd.app.util.TutorialPreferenceHelper
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.edukrd.app.viewmodel.CourseViewModel
 import com.edukrd.app.viewmodel.ExamViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.material.ModalBottomSheetLayout
-import com.edukrd.app.ui.screens.home.DailyProgressBar
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,8 +121,9 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
     var logoutOffset by remember { mutableStateOf(Offset.Zero) }
     var bannerOffset by remember { mutableStateOf(Offset.Zero) }
 
-
-
+    //estados para los reportes
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
 
     // Variable para almacenar la posición del contenedor raíz (para conversión de coordenadas)
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
@@ -197,19 +209,18 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
                             .size(28.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.White)
-                            .clickable { showTutorialOverlay = true },
+                            .clickable { showHelpDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
-                            contentDescription = "Mostrar tutorial",
+                            contentDescription = "Mostrar opciones de ayuda",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(28.dp)
                         )
                     }
                 },
-
-                        floatingActionButtonPosition = FabPosition.Start
+                floatingActionButtonPosition = FabPosition.Start
             ) { innerPadding ->
                 Box(
                     modifier = Modifier
@@ -266,128 +277,71 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
-
-
-
+                                    // Otros elementos de la UI...
                                 }
                             }
                         }
                     }
                 }
             }
+
+// Si el diálogo de estadísticas globales se debe mostrar.
+            if (showGlobalStatsDialog) {
+                GlobalStatsDialog(
+                    onDismiss = { showGlobalStatsDialog = false },
+                    dailyCurrent = userGoalsState.dailyCurrent,
+                    dailyTarget = userGoalsState.dailyTarget,
+                    weeklyCurrent = userGoalsState.weeklyCurrent,
+                    weeklyTarget = userGoalsState.weeklyTarget,
+                    monthlyCurrent = userGoalsState.monthlyCurrent,
+                    monthlyTarget = userGoalsState.monthlyTarget,
+                    dailyData = dailyData,
+                    weeklyData = weeklyData,
+                    monthlyData = monthlyData
+                )
+            }
+
+// Diálogo de ayuda: pregunta si el usuario quiere ver el tutorial o realizar un reporte.
+            if (showHelpDialog) {
+                AlertDialog(
+                    onDismissRequest = { showHelpDialog = false },
+                    title = { Text("Ayuda") },
+                    text = { Text("¿Qué deseas hacer?") },
+                    confirmButton = {
+                        Button(onClick = {
+                            showHelpDialog = false
+                            showTutorialOverlay = true
+                        }) {
+                            Text("Tutorial")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = {
+                            showHelpDialog = false
+                            showReportDialog = true
+                        }) {
+                            Text("Reporte")
+                        }
+                    }
+                )
+            }
+
+// Diálogo para enviar reporte.
+            if (showReportDialog) {
+                ReportDialog(
+                    onDismiss = { showReportDialog = false }
+                )
+            }
+
+// Overlay del tutorial (si corresponde).
+            if (showTutorialOverlay) {
+                TutorialOverlay(
+                    onDismiss = { showTutorialOverlay = false }
+                )
+            }
+            MotivationalBubble(
+                message = "Pulsa aquí \nEMPECECMOS A APRENDER!",
+                detailedDescription = "Desde esta pantalla tienes acceso a toda la aplicacion. Observa tu objetivo diario; este te indica el promedio que debes completar para monedas, y ser el 1ro en el ranking. Pulsa en las imagenes, son cursos. Al completarlos, se mostrará obtienes la medalla de dicho curso y monedas de recompenza"
+            )
         }
-    }
-
-
-    if (showGlobalStatsDialog) {
-        GlobalStatsDialog(
-            onDismiss = { showGlobalStatsDialog = false },
-            dailyCurrent = userGoalsState.dailyCurrent,
-            dailyTarget = userGoalsState.dailyTarget,
-            weeklyCurrent = userGoalsState.weeklyCurrent,
-            weeklyTarget = userGoalsState.weeklyTarget,
-            monthlyCurrent = userGoalsState.monthlyCurrent,
-            monthlyTarget = userGoalsState.monthlyTarget,
-            dailyData = dailyData,
-            weeklyData = weeklyData,
-            monthlyData = monthlyData
-        )
-    }
-
-
-/*    val density = LocalDensity.current
-
-
-    val convertOffset: (Offset) -> Offset = { measuredOffset ->
-        measuredOffset - rootOffset
-
-
-
-
-
-    }
-
-    val medallasArrowX = with(density) { convertOffset(navMedallasOffset).x.toDp().value.toInt() }
-    val medallasArrowY = with(density) { convertOffset(navMedallasOffset).y.toDp().value.toInt() }
-    Log.d("TutorialStep", "Medallas Arrow - X: $medallasArrowX, Y: $medallasArrowY")
-
-
-    val tutorialSteps = listOf(
-        TutorialStep(
-            id = 1,
-            title = "Configuración",
-            description = "Toca aquí para acceder a la configuración de la app y modificar tus preferencias.",
-            targetAlignment = Alignment.TopStart,
-           // arrowAlignment = Alignment.TopStart,
-            arrowOffsetX = with(density) { convertOffset(settingsOffset).x.toDp().value.toInt() },
-            arrowOffsetY = with(density) { convertOffset(settingsOffset).y.toDp().value.toInt() },
-            bubbleOffsetX = 0,
-            bubbleOffsetY = 48
-        ),
-        TutorialStep(
-            id = 2,
-            title = "Cerrar Sesión",
-            description = "Toca aquí para salir de la aplicación.",
-            targetAlignment = Alignment.TopEnd,
-            arrowAlignment = Alignment.TopEnd,
-            arrowOffsetX = with(density) { convertOffset(logoutOffset).x.toDp().value.toInt() },
-            arrowOffsetY = with(density) { convertOffset(logoutOffset).y.toDp().value.toInt() },
-            bubbleOffsetX = 0,
-            bubbleOffsetY = 48
-        ),
-        TutorialStep(
-            id = 3,
-            title = "Barra de Objetivos",
-            description = "Toca aquí para ver tus objetivos diarios, semanales y mensuales.",
-            targetAlignment = Alignment.TopCenter,
-            arrowAlignment = Alignment.TopCenter,
-            arrowOffsetX = with(density) { convertOffset(bannerOffset).x.toDp().value.toInt() },
-            arrowOffsetY = with(density) { (convertOffset(bannerOffset).y.toDp().value.toInt() + 24) },
-            bubbleOffsetX = 0,
-            bubbleOffsetY = 48
-        ),
-        TutorialStep(
-            id = 4,
-            title = "Medallas",
-            description = "Presiona este botón para ver tu medallero y logros.",
-            targetAlignment = Alignment.Center,
-            arrowAlignment = Alignment.BottomCenter,
-            arrowOffsetX = with(density) { convertOffset(navMedallasOffset).x.toDp().value.toInt() },
-            arrowOffsetY = with(density) { convertOffset(navMedallasOffset).y.toDp().value.toInt() },
-            bubbleOffsetX = 0,
-            bubbleOffsetY = 10
-        ),
-        TutorialStep(
-            id = 5,
-            title = "Tienda",
-            description = "Accede a la tienda para canjear tus monedas.",
-            targetAlignment = Alignment.Center,
-            arrowAlignment = Alignment.BottomCenter,
-            arrowOffsetX = with(density) { convertOffset(navTiendaOffset).x.toDp().value.toInt() },
-            arrowOffsetY = with(density) { convertOffset(navTiendaOffset).y.toDp().value.toInt() },
-            bubbleOffsetX = 0,
-            bubbleOffsetY = 10
-        ),
-
-
-        TutorialStep(
-            id = 6,
-            title = "Ranking",
-            description = "Consulta el ranking para ver tu posición.",
-            targetAlignment = Alignment.Center,
-            arrowAlignment = Alignment.BottomCenter,
-            arrowOffsetX = with(density) { convertOffset(navRankingOffset).x.toDp().value.toInt() },
-            arrowOffsetY = with(density) { convertOffset(navRankingOffset).y.toDp().value.toInt() },
-            bubbleOffsetX = 0,
-            bubbleOffsetY = 10
-        )
-    )
-*/
-    // Overlay tutorial secuencial: se muestra sobre HomeScreen.
-    if (showTutorialOverlay) {
-        TutorialOverlay(
-
-            onDismiss = { showTutorialOverlay = false }
-        )
-    }
-}
+    }    }

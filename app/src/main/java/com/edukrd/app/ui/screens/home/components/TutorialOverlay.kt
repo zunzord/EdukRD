@@ -37,9 +37,9 @@ data class TutorialItem(
     val id: Int,
     val title: String,
     val description: String,
-    val arrowX: Float,     // Porcentaje horizontal [0..1]
-    val arrowY: Float,     // Porcentaje vertical [0..1]
-    val arrowIcon: Int,    // Recurso de flecha (ic_up_arrow, ic_down_arrow, etc.)
+    val arrowX: Float,
+    val arrowY: Float,
+    val arrowIcon: Int,
     val bubbleAlignment: Alignment = Alignment.TopCenter
 )
 
@@ -60,7 +60,7 @@ val defaultTutorialItems = listOf(
         description = "Aquí puedes modificar tus preferencias y ajustes de la app.",
         arrowX = 0.065f,  // Ajusta
         arrowY = 0.14f,  // Ajusta
-        arrowIcon = R.drawable.ic_up_arrow, // Por ejemplo, flecha apuntando hacia abajo
+        arrowIcon = R.drawable.ic_up_arrow,
         bubbleAlignment = Alignment.Center
     ),
     TutorialItem(
@@ -164,7 +164,7 @@ fun TutorialOverlay(
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.7f))
     ) {
-        // Imagen de fondo (screenshot) que ocupa toda la pantalla
+        // Imagen de fondo que ocupa toda la pantalla y se alinea a la parte superior
         Image(
             painter = painterResource(id = R.drawable.tutorialphoto),
             contentDescription = "Tutorial background",
@@ -172,6 +172,7 @@ fun TutorialOverlay(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(screenHeight)
+                .align(Alignment.TopCenter)
         )
 
         // Flecha
