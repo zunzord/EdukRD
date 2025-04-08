@@ -72,4 +72,11 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
+    fun logout() {
+        viewModelScope.launch {
+            auth.signOut()
+            // Reinicia cualquier estado según sea necesario.
+        }
+    }
 }

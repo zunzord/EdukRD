@@ -23,14 +23,14 @@ class SessionRepository @Inject constructor(
      * Crea una nueva sesión para el usuario actual.
      * Se genera una nueva referencia de documento para asignar de forma atómica el sessionId.
      *
-     * @param deviceId Identificador del dispositivo (por ejemplo, obtenido de alguna API de sistema)
+     * @param deviceId Identificador del dispositivo (por ejemplo, obtenido mediante una API del sistema).
      * @return La sesión creada o null en caso de error.
      */
     suspend fun createSession(deviceId: String): Session? {
         val currentUser = auth.currentUser ?: return null
         // Genera una nueva referencia para la sesión.
         val newDocRef = sessionsCollection.document()
-        // Crea la sesión usando el ID generado por Firestore.
+        // Crea la sesión usando el ID generado por Firestore para el campo sessionId.
         val session = Session(
             sessionId = newDocRef.id,
             userId = currentUser.uid,

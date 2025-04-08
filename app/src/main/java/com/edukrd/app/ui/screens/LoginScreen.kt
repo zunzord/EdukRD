@@ -2,14 +2,33 @@ package com.edukrd.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -17,6 +36,7 @@ import com.edukrd.app.R
 import com.edukrd.app.ui.components.DotLoadingIndicator
 import com.edukrd.app.ui.components.UnderlinedTextField
 import com.edukrd.app.viewmodel.AuthViewModel
+import com.edukrd.app.viewmodel.SessionViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -25,6 +45,7 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun LoginScreen(navController: NavController) {
     val authViewModel: AuthViewModel = hiltViewModel()
+    val sessionViewModel: SessionViewModel = hiltViewModel()
     val userViewModel: UserViewModel = hiltViewModel()
     val context = LocalContext.current
 
@@ -32,6 +53,7 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var showActiveSessionDialog by remember { mutableStateOf(false) }
 
     // Observe navigation commands from UserViewModel
     val navigationCommand by userViewModel.navigationCommand.collectAsState(initial = null)
@@ -137,5 +159,54 @@ fun LoginScreen(navController: NavController) {
                 Text("¿No tienes cuenta? Regístrate")
             }
         }
+
+
     }
+    if (showActiveSessionDialog) {
+        ActiveSessionDialog(
+            onConfirm = {
+                // El usuario acepta cerrar la sesión anterior.
+                // Invocamos la función closeSession y luego re-creamos la sesión.
+                sessionViewModel.closeSession()
+                // Se podría esperar a que se cierre y luego crear la nueva sesión;
+                // aquí simplemente ocultamos el diálogo y dejamos que el flujo de login continúe.
+                showActiveSessionDialog = false
+                // Opcional: mostrar un Toast informando que se ha cerrado la sesión anterior.
+                Toast.makeText(context, "Se ha cerrado la sesión anterior. Iniciando nueva sesión.", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = {
+                // El usuario cancela, por lo que se evita el login.
+                showActiveSessionDialog = false
+                // Puedes opcionalmente cerrar la sesión actual (o volver a la pantalla de login).
+                authViewModel.logout() // Asegúrate de tener implementada la función logout.
+            }
+        )
+    }
+
+}
+
+@Composable
+fun ActiveSessionDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Sesión activa detectada")
+        },
+        text = {
+            Text("Ya hay una sesión activa en otro dispositivo. ¿Deseas cerrar la sesión anterior y continuar?")
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Sí, cerrar sesión anterior")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
