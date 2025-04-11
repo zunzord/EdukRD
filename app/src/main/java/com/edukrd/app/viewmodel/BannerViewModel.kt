@@ -25,14 +25,15 @@ class BannerViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val urls = imageRepository.getImageUrls()
+            // Invocar la nueva función que utiliza nombres incrementales (por ejemplo, fondo1.png, fondo2.png, etc.)
+            val urls = imageRepository.getIncrementalImageUrls()
             _imageUrls.value = urls
-            Log.d("BannerViewModel", "URLs obtenidas: $urls")
+            Log.d("BannerViewModel", "URLs obtenidas con la lógica incremental: $urls")
 
-            // Si hay imágenes, inicia el ciclo de cambio cada 5 segundos
+            // Inicia el ciclo del carrusel si existen imágenes
             if (urls.isNotEmpty()) {
                 while (true) {
-                    delay(5000) // 5000 ms = 5 segundos
+                    delay(5000L) // Espera 5 segundos entre cambios
                     _currentIndex.value = (_currentIndex.value + 1) % urls.size
                 }
             }

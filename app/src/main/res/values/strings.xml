@@ -1,5 +1,19 @@
 <resources>
     <string name="app_name">edukrd</string>
     <string name="default_notification_channel_id">default_channel</string>
+    <string name="login_button">Ingresar</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="register">¿No tienes cuenta? Regístrate</string>
+    <string name="active_session_title">Sesión activa detectada</string>
+    <string name="active_session_message">Ya hay una sesión activa en otro dispositivo. ¿Deseas cerrar la sesión anterior y continuar?</string>
+    <string name="yes_close_session">Sí, cerrar sesión anterior</string>
+    <string name="cancel">Cancelar</string>
+    <string name="hello_user">Hola, %1$s!</string>
+    <string name="start_course">Iniciar Curso</string>
+    <string name="rate_course">Puntúa este curso</string>
+    <string name="course_detail">Detalle del curso</string>
+
 
 </resources>

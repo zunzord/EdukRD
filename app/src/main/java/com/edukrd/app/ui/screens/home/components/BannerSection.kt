@@ -1,12 +1,17 @@
 package com.edukrd.app.ui.screens.home
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -15,24 +20,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.edukrd.app.R
 import com.edukrd.app.models.UserGoalsState
 import com.edukrd.app.viewmodel.BannerViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun BannerSection(
-    /*bannerUrl: String,*/
     userName: String,
     userGoalsState: UserGoalsState,
     onDailyTargetClick: () -> Unit,
     onBannerIconPosition: ((Offset) -> Unit)? = null,
     viewModel: BannerViewModel = hiltViewModel()
 ) {
-    // Observa la lista de URLs y el índice actual del carrusel
-    val imageUrls = viewModel.imageUrls.collectAsState()
-    val currentIndex = viewModel.currentIndex.collectAsState()
+    // Observamos la lista de URLs y el índice actual del carrusel desde el ViewModel
+    val imageUrls by viewModel.imageUrls.collectAsState()
+    val currentIndex by viewModel.currentIndex.collectAsState()
 
     Column {
         Box(
@@ -40,22 +44,16 @@ fun BannerSection(
                 .fillMaxWidth()
                 .height(250.dp)
         ) {
-            if (imageUrls.value.isNotEmpty()) {
-                // Utiliza el índice actual para mostrar la imagen correspondiente
-                AsyncImage(
-                    model = imageUrls.value[currentIndex.value],
-                    contentDescription = "Banner de la pantalla Home",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Image(
-                    painter = painterResource(id = R.drawable.fondo),
-                    contentDescription = "Banner de la pantalla Home",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
+            AsyncImage(
+                model = imageUrls.getOrNull(currentIndex) ?: "",  // Si la lista está vacía se usa ""
+                contentDescription = "Banner de la pantalla Home",
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.fondo), // Imagen por defecto mientras carga
+                error = painterResource(id = R.drawable.fondo) // Imagen por defecto en caso de error
+            )
+            // Overlay de degradado para mejorar la visibilidad del texto
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -79,7 +77,8 @@ fun BannerSection(
                     .padding(16.dp)
             )
         }
-        // Invoca el componente para mostrar el progreso diario (DailyProgressBar)
+
+        // Se invoca el componente para mostrar el progreso diario
         DailyProgressBar(
             dailyCurrent = userGoalsState.dailyCurrent,
             dailyTarget = userGoalsState.dailyTarget,

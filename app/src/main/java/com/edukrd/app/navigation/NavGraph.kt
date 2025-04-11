@@ -1,22 +1,41 @@
 package com.edukrd.app.navigation
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
-import com.edukrd.app.ui.screens.*
+import com.edukrd.app.ui.screens.CourseScreen
+import com.edukrd.app.ui.screens.ErrorScreen
+import com.edukrd.app.ui.screens.ExamScreen
+import com.edukrd.app.ui.screens.ForgotPasswordScreen
+import com.edukrd.app.ui.screens.LoginScreen
+import com.edukrd.app.ui.screens.MedalsScreen
+import com.edukrd.app.ui.screens.OnboardingScreen
+import com.edukrd.app.ui.screens.RankingScreen
+import com.edukrd.app.ui.screens.RegisterScreen
+import com.edukrd.app.ui.screens.SessionValidationScreen
+import com.edukrd.app.ui.screens.SettingsScreen
+import com.edukrd.app.ui.screens.SplashScreen
+import com.edukrd.app.ui.screens.StoreScreen
+import com.edukrd.app.ui.screens.VerificationPendingScreen
 import com.edukrd.app.ui.screens.home.HomeScreen
 import com.edukrd.app.viewmodel.OnboardingViewModel
 import com.edukrd.app.viewmodel.ThemeViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.geometry.Offset
 
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -106,6 +125,9 @@ fun NavGraph(
             ) { backStackEntry ->
                 val email = backStackEntry.arguments?.getString("email") ?: ""
                 VerificationPendingScreen(navController, email)
+            }
+            composable("session_validation") {
+                SessionValidationScreen(navController = navController)
             }
         }
     }

@@ -103,7 +103,7 @@ fun StoreScreen(
             )
             MotivationalBubble(
                 message = "CANJEA! \npulsa aquí para saber más!",
-                detailedDescription = "Aquí podrás: verificar tus monedas, canjearlas por articulos disponibles. Además, puedes dar seguimiento a los articulos canjeados."
+                detailedDescription = "Aquí podrás: verificar tus monedas y canjearlas por articulos disponibles. Además, puedrás dar seguimiento a los articulos canjeados."
             )
         }
 

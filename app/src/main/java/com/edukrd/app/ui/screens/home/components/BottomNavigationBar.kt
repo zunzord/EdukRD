@@ -2,10 +2,10 @@ package com.edukrd.app.ui.screens.home.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,10 +33,10 @@ fun BottomNavigationBar(
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.ic_course),
-                    contentDescription = "Home"
+                    contentDescription = "Inicio"
                 )
             },
-            label = { Text("Home") },
+            label = { Text("Inicio") },
             alwaysShowLabel = false
         )
         NavigationBarItem(
@@ -51,11 +51,11 @@ fun BottomNavigationBar(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_medal),
-                        contentDescription = "Medals"
+                        contentDescription = "Medallas"
                     )
                 }
             },
-            label = { Text("Medals") },
+            label = { Text("Medallas") },
             alwaysShowLabel = false
         )
         NavigationBarItem(
@@ -64,14 +64,14 @@ fun BottomNavigationBar(
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.ic_store),
-                    contentDescription = "Store",
+                    contentDescription = "Tienda",
                     modifier = Modifier.onGloballyPositioned { coordinates ->
                         // Mide la posición absoluta del Icon directamente
                         onStoreIconPosition(coordinates.localToWindow(Offset.Zero))
                     }
                 )
             },
-            label = { Text("Store") },
+            label = { Text("Tienda") },
             alwaysShowLabel = false
         )
         NavigationBarItem(

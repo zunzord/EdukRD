@@ -40,7 +40,6 @@ import com.edukrd.app.viewmodel.SessionViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -55,7 +54,7 @@ fun LoginScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf("") }
     var showActiveSessionDialog by remember { mutableStateOf(false) }
 
-    // Observe navigation commands from UserViewModel
+    // Observa los comandos de navegación emitidos por UserViewModel
     val navigationCommand by userViewModel.navigationCommand.collectAsState(initial = null)
 
     LaunchedEffect(navigationCommand) {
@@ -76,18 +75,24 @@ fun LoginScreen(navController: NavController) {
         }
     }
 
+    // Manejo del resultado de la autenticación (login o registro)
     LaunchedEffect(authViewModel) {
         authViewModel.authResult.collect { result ->
             when (result) {
                 is com.edukrd.app.viewmodel.AuthResult.Success -> {
                     val firebaseUser = FirebaseAuth.getInstance().currentUser
+                    // Validación de email verificado (esta parte permanece sin cambios)
                     if (firebaseUser != null && !firebaseUser.isEmailVerified) {
                         FirebaseAuth.getInstance().signOut()
                         navController.navigate("verification_pending") {
                             popUpTo("login") { inclusive = true }
                         }
                     } else {
+                        // Cargamos los datos del usuario, manteniendo la lógica actual.
                         userViewModel.loadCurrentUserData()
+                        // Una vez cumplidas las validaciones (auth, email y datos del usuario),
+                        // se procede a gestionar la sesión robusta.
+                        //sessionViewModel.createNewSession()
                     }
                     isLoading = false
                 }
@@ -98,6 +103,14 @@ fun LoginScreen(navController: NavController) {
             }
         }
     }
+
+    // Observa el canal de conflicto de sesión para mostrar el diálogo cuando sea necesario.
+   /* LaunchedEffect(key1 = sessionViewModel) {
+        sessionViewModel.sessionConflictEvent.collect { conflictMessage ->
+            showActiveSessionDialog = true
+            Toast.makeText(context, conflictMessage, Toast.LENGTH_LONG).show()
+        }
+    }*/
 
     Scaffold { innerPadding ->
         Column(
@@ -120,7 +133,8 @@ fun LoginScreen(navController: NavController) {
                 value = email,
                 onValueChange = { email = it.trim() },
                 label = "Correo electrónico",
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+
             )
             Spacer(modifier = Modifier.height(8.dp))
             UnderlinedTextField(
@@ -145,7 +159,9 @@ fun LoginScreen(navController: NavController) {
                         authViewModel.login(email, password)
                     }
                 },
-                modifier = Modifier.width(150.dp).height(40.dp),
+                modifier = Modifier
+                    .width(150.dp)
+                    .height(40.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) DotLoadingIndicator(modifier = Modifier.size(56.dp))
@@ -159,30 +175,24 @@ fun LoginScreen(navController: NavController) {
                 Text("¿No tienes cuenta? Regístrate")
             }
         }
-
-
     }
+
+    // Diálogo que se muestra si se detecta que hay sesión activa en otro dispositivo.
     if (showActiveSessionDialog) {
         ActiveSessionDialog(
             onConfirm = {
-                // El usuario acepta cerrar la sesión anterior.
-                // Invocamos la función closeSession y luego re-creamos la sesión.
+                // El usuario opta por cerrar la sesión previa.
                 sessionViewModel.closeSession()
-                // Se podría esperar a que se cierre y luego crear la nueva sesión;
-                // aquí simplemente ocultamos el diálogo y dejamos que el flujo de login continúe.
                 showActiveSessionDialog = false
-                // Opcional: mostrar un Toast informando que se ha cerrado la sesión anterior.
                 Toast.makeText(context, "Se ha cerrado la sesión anterior. Iniciando nueva sesión.", Toast.LENGTH_SHORT).show()
             },
             onDismiss = {
-                // El usuario cancela, por lo que se evita el login.
+                // El usuario cancela la acción, se evita continuar con el login.
                 showActiveSessionDialog = false
-                // Puedes opcionalmente cerrar la sesión actual (o volver a la pantalla de login).
-                authViewModel.logout() // Asegúrate de tener implementada la función logout.
+                authViewModel.logout() // Se invoca el logout para limpiar el estado.
             }
         )
     }
-
 }
 
 @Composable
@@ -192,12 +202,8 @@ fun ActiveSessionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text("Sesión activa detectada")
-        },
-        text = {
-            Text("Ya hay una sesión activa en otro dispositivo. ¿Deseas cerrar la sesión anterior y continuar?")
-        },
+        title = { Text("Sesión activa detectada") },
+        text = { Text("Ya hay una sesión activa en otro dispositivo. ¿Deseas cerrar la sesión anterior y continuar?") },
         confirmButton = {
             Button(onClick = onConfirm) {
                 Text("Sí, cerrar sesión anterior")

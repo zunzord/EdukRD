@@ -9,12 +9,12 @@ import com.edukrd.app.usecase.ScheduleNotificationUseCase
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -44,6 +44,9 @@ class UserViewModel @Inject constructor(
     private val _navigationCommand = Channel<NavigationCommand>(Channel.BUFFERED)
     val navigationCommand = _navigationCommand.receiveAsFlow()
 
+    private val _dataLoaded = MutableStateFlow(false)
+    val dataLoaded: StateFlow<Boolean> = _dataLoaded
+
     /**
      * Carga los datos del usuario actual y emite el comando de navegación apropiado.
      */
@@ -63,6 +66,7 @@ class UserViewModel @Inject constructor(
                 val data = userRepository.getUserData(uid)
                 _userData.value = data
                 _coins.value = data?.coins ?: 0
+                _dataLoaded.value = true
 
 
                 if (data != null) {

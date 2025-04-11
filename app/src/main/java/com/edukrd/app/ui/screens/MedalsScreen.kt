@@ -8,8 +8,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -27,16 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.edukrd.app.ui.components.DotLoadingIndicator
-    import com.edukrd.app.ui.components.MotivationalBubble
-    import com.edukrd.app.viewmodel.MedalData
+import com.edukrd.app.ui.components.MotivationalBubble
+import com.edukrd.app.viewmodel.MedalData
 import com.edukrd.app.viewmodel.MedalViewModel
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +53,7 @@ import com.edukrd.app.viewmodel.MedalViewModel
 
 
 
-        // Puedes reutilizar tu color principal, por ejemplo:
+
         val dominicanBlue = Color(0xFF1565C0)
 
         Scaffold(
@@ -99,11 +98,12 @@ import com.edukrd.app.viewmodel.MedalViewModel
                         )
                     }
                     else -> {
-                        // Mostramos las medallas en un carrusel horizontal
-                        LazyRow(
+                        //carrucel horizontal
+                        LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             items(medals) { medal ->
                                 MedalItem(medal)
@@ -115,7 +115,7 @@ import com.edukrd.app.viewmodel.MedalViewModel
         }
         MotivationalBubble(
             message = "GRANDIOSAS! \nson la prueba de tu aprendizaje",
-            detailedDescription = "Este es tu medallero. Aquí colecciones todas las medallas que hsa obenido. Además, las medallas se muestran encima del curso al que pertenecen. Así, sabes que has dominado ese curso. No creas que es su unica función; en el futuro, representarán mas de lo que imaginas."
+            detailedDescription = "Este es tu medallero. Aquí coleccionas todas las medallas que has obtenido. También, las encontraras encima del curso al que pertenecen. Así, sabes que has dominado ese curso. No creas que es su única función; pronto, representarán más de lo que imaginas."
         )
     }
 
@@ -127,45 +127,40 @@ import com.edukrd.app.viewmodel.MedalViewModel
      */
     @Composable
     fun MedalItem(medal: MedalData) {
-        // Controla la visibilidad del overlay
+        // Controla la visibilidad del overlay con el título
         var showTitle by remember { mutableStateOf(false) }
+        val sizeMedal = 280.dp
 
-        // Ajusta el tamaño según tu preferencia
         Box(
             modifier = Modifier
-                .size(200.dp)
-                .clip(RectangleShape)
-                .clickable { showTitle = !showTitle }
+                .size(sizeMedal)
+                .clip(CircleShape) // Recorta en forma circular
+                .clickable { showTitle = !showTitle },
+            contentAlignment = Alignment.Center
         ) {
-            // Imagen principal de la medalla
             AsyncImage(
                 model = medal.imageUrl,
                 contentDescription = medal.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(6.dp), // Agrega un padding interno, para que la imagen no se "pegue" al borde.
+                contentScale = ContentScale.Fit  // Usa Fit para que la imagen se ajuste sin recortes excesivos.
             )
 
-            // Si se pulsó la medalla, muestra overlay con el título
+            // Si se toca la medalla, se muestra un overlay con el título
             if (showTitle) {
-                // Fondo semitransparente para resaltar el texto
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            // Por ejemplo, un overlay negro con alpha
-                            Color.Black.copy(alpha = 0.4f)
-                                // compositeOver(...) te permite ajustar la mezcla si deseas
-                                .compositeOver(Color.Transparent)
-                        )
+                        .background(Color.Black.copy(alpha = 0.5f))
                 ) {
                     Text(
                         text = medal.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.labelMedium,
                         color = Color.White,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
             }
         }
-
     }

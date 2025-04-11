@@ -1,11 +1,12 @@
 package com.edukrd.app.di
 
 import android.content.Context
-import com.edukrd.app.repository.TimeRepository
-import com.edukrd.app.repository.TimeRepositoryImpl
 import com.edukrd.app.repository.NotificationRepository
 import com.edukrd.app.repository.NotificationRepositoryImpl
+import com.edukrd.app.repository.TimeRepository
+import com.edukrd.app.repository.TimeRepositoryImpl
 import com.edukrd.app.usecase.GetServerDateUseCase
+import com.edukrd.app.util.ErrorMapper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
@@ -51,4 +52,8 @@ object AppModule {
     fun provideNotificationRepository(
         @ApplicationContext context: Context
     ): NotificationRepository = NotificationRepositoryImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideErrorMapper(): ErrorMapper = ErrorMapper()
 }

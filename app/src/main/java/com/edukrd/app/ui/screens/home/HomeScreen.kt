@@ -341,7 +341,7 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
             }
             MotivationalBubble(
                 message = "Pulsa aquí \nEMPECECMOS A APRENDER!",
-                detailedDescription = "Desde esta pantalla tienes acceso a toda la aplicacion. Observa tu objetivo diario; este te indica el promedio que debes completar para monedas, y ser el 1ro en el ranking. Pulsa en las imagenes, son cursos. Al completarlos, se mostrará obtienes la medalla de dicho curso y monedas de recompenza"
+                detailedDescription = "Desde esta pantalla tienes acceso a toda la aplicacion. Observa tu objetivo diario; este te indicará el promedio de examanes que debes completar, y así serás el 1ro en el ranking. \nPulsa en las imagenes, son cursos. Al completarlos, obtendras su medalla, así como monedas de recompenza"
             )
         }
     }    }
