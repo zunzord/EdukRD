@@ -32,7 +32,7 @@ class ScheduleNotificationUseCase @Inject constructor(
         val now = LocalDateTime.now()
 
         val scheduledTime = when (frequency) {
-            "Diaria" -> now.plusMinutes(1)
+            "Diaria" -> now.plusDays(1)
             "Semanal" -> now.plusWeeks(1)
             "Mensual" -> now.plusMonths(1)
             else -> now.plusDays(1)
