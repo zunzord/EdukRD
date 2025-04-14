@@ -3,10 +3,12 @@ package com.edukrd.app.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.edukrd.app.models.UserGoalsState
 import com.edukrd.app.repository.CoinRepository
 import com.edukrd.app.repository.CourseRepository
 import com.edukrd.app.repository.ExamRepository
 import com.edukrd.app.usecase.GetServerDateUseCase
+import com.edukrd.app.usecase.GetUserGoalsUseCase
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,10 +17,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoField
 import javax.inject.Inject
-import com.edukrd.app.models.UserGoalsState
-import kotlin.math.ceil
-import kotlin.math.max
-import com.edukrd.app.usecase.GetUserGoalsUseCase
 
 data class ExamState(
     val examId: String = "",
@@ -293,5 +291,10 @@ class ExamViewModel @Inject constructor(
                 Log.e("ExamViewModel", "Error calculando metas del usuario", e)
             }
         }
+    }
+    suspend fun getCoinsEarned(courseId: String): Int {
+        val uid = auth.currentUser?.uid ?: return 0
+        val course = courseRepository.getCourseById(courseId) ?: return 0
+        return coinRepository.awardCoinsForCourse(uid, course)
     }
 }

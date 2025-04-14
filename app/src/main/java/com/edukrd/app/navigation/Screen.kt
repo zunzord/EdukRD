@@ -21,4 +21,17 @@
             fun createRoute(email: String) = "verification_pending?email=$email"
         }
         object Splash : Screen("splash")
+
+        object ExamResultScreen : Screen("exam_result/{courseId}/{finalScore}/{correctCount}/{totalQuestions}/{passed}/{coinsEarned}") {
+            fun createRoute(
+                courseId: String,
+                finalScore: Int,
+                correctCount: Int,
+                totalQuestions: Int,
+                passed: Boolean,
+                coinsEarned: Int
+            ): String {
+                return "exam_result/$courseId/$finalScore/$correctCount/$totalQuestions/$passed/$coinsEarned"
+            }
+        }
     }

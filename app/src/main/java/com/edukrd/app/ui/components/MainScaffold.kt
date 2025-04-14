@@ -6,7 +6,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -14,11 +18,6 @@ import com.edukrd.app.navigation.NavGraph
 import com.edukrd.app.navigation.Screen
 import com.edukrd.app.ui.screens.home.components.BottomNavigationBar
 import com.edukrd.app.viewmodel.ThemeViewModel
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Offset
 
 
 @Composable
@@ -42,7 +41,8 @@ fun MainScaffold(
         Screen.Splash.route,
         Screen.VerificationPending.route,
         Screen.Course.route,
-        Screen.Exam.route
+        Screen.Exam.route,
+        Screen.ExamResultScreen.route
     )
     // La barra se muestra solo si la ruta actual no es una de las excluidas y no es cadena vacía.
     val shouldShowBottomBar = route.isNotEmpty() && route !in routesWithoutBottomBar

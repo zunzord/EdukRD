@@ -2,11 +2,23 @@ package com.edukrd.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -30,18 +42,18 @@ fun OnboardingScreen(
     val pages = listOf(
         OnboardingPage(
             title = "Bienvenido a EdukRD",
-            description = "Descubre un mundo de aprendizaje y beneficios.",
-            imageResId = com.edukrd.app.R.drawable.onboarding_image1_round
+            description = "",
+            imageResId = com.edukrd.app.R.drawable.onboarding_image11_round
         ),
         OnboardingPage(
             title = "Aprende de forma interactiva",
-            description = "Accede a cursos diseñados para acompañarte.",
-            imageResId = com.edukrd.app.R.drawable.onboarding_image2_round
+            description = "",
+            imageResId = com.edukrd.app.R.drawable.onboarding_image22_round
         ),
         OnboardingPage(
             title = "Beneficios exclusivos",
-            description = "Gana monedas, medallas y compite en el ranking.",
-            imageResId = com.edukrd.app.R.drawable.onboarding_image3_round
+            description = "",
+            imageResId = com.edukrd.app.R.drawable.onboarding_image33_round
         )
     )
 
@@ -49,7 +61,7 @@ fun OnboardingScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Observe completion event
+    // Observa el evento de finalización
     val completion by onboardingViewModel.complete.collectAsState(initial = null)
     LaunchedEffect(completion) {
         completion?.let { success ->
@@ -67,12 +79,14 @@ fun OnboardingScreen(
         }
     }
 
+    // El Scaffold se encarga del layout global de la pantalla
     Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // HorizontalPager que ocupa la mayor parte de la pantalla
             HorizontalPager(
                 count = pages.size,
                 state = pagerState,
@@ -83,13 +97,15 @@ fun OnboardingScreen(
                 OnboardingPageContent(page = pages[page])
             }
 
+            // Indicador del pager
             HorizontalPagerIndicator(
                 pagerState = pagerState,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(16.dp)
+                    .padding(bottom = 8.dp)
             )
 
+            // Botón al final (solo se reserva el espacio suficiente para éste)
             val isLastPage = pagerState.currentPage == pages.lastIndex
             Button(
                 onClick = {
@@ -100,7 +116,7 @@ fun OnboardingScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(if (isLastPage) "Bienvenido a EdukRD" else "Siguiente")
+                Text(text = if (isLastPage) "Bienvenido a EdukRD" else "Siguiente")
             }
         }
     }
@@ -108,23 +124,17 @@ fun OnboardingScreen(
 
 @Composable
 fun OnboardingPageContent(page: OnboardingPage) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    // Usamos un Box para que la imagen ocupe todo el espacio disponible en cada página
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
         Image(
             painter = painterResource(id = page.imageResId),
             contentDescription = page.title,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit  // o ContentScale.Inside
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = page.title, style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = page.description, style = MaterialTheme.typography.bodyMedium)
+        // Si deseas agregar textos superpuestos a la imagen, podrías colocarlos aquí.
+        // Por ejemplo, un título en la parte superior o inferior, con un fondo semi-transparente.
     }
 }

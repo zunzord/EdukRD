@@ -21,6 +21,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.edukrd.app.ui.screens.CourseScreen
 import com.edukrd.app.ui.screens.ErrorScreen
+import com.edukrd.app.ui.screens.ExamResultScreen
 import com.edukrd.app.ui.screens.ExamScreen
 import com.edukrd.app.ui.screens.ForgotPasswordScreen
 import com.edukrd.app.ui.screens.LoginScreen
@@ -113,6 +114,45 @@ fun NavGraph(
                 if (courseId.isNullOrEmpty()) ErrorScreen(navController)
                 else ExamScreen(navController, courseId)
             }
+
+            composable(
+                route = Screen.ExamResultScreen.route,
+                arguments = listOf(
+                    navArgument("courseId") { type = NavType.StringType },
+                    navArgument("finalScore") { type = NavType.IntType },
+                    navArgument("correctCount") { type = NavType.IntType },
+                    navArgument("totalQuestions") { type = NavType.IntType },
+                    navArgument("passed") { type = NavType.BoolType },
+                    navArgument("coinsEarned") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val courseId = backStackEntry.arguments?.getString("courseId") ?: ""
+                val finalScore = backStackEntry.arguments?.getInt("finalScore") ?: 0
+                val correctCount = backStackEntry.arguments?.getInt("correctCount") ?: 0
+                val totalQuestions = backStackEntry.arguments?.getInt("totalQuestions") ?: 0
+                val passed = backStackEntry.arguments?.getBoolean("passed") ?: false
+                val coinsEarned = backStackEntry.arguments?.getInt("coinsEarned") ?: 0
+
+                ExamResultScreen(
+                    courseId = courseId,
+                    finalScore = finalScore,
+                    correctCount = correctCount,
+                    totalQuestions = totalQuestions,
+                    passed = passed,
+                    coinsEarned = coinsEarned,
+                    onContinue = {
+                        // Navegar al HomeScreen
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    },
+                    onRetry = {
+                        // Navegar de vuelta a ExamScreen para reintentar el examen
+                        navController.navigate(Screen.Exam.createRoute(courseId))
+                    }
+                )
+            }
+
             composable(Screen.Error.route) {
                 ErrorScreen(navController)
             }

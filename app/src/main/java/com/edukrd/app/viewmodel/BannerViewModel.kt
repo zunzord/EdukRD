@@ -23,6 +23,17 @@ class BannerViewModel @Inject constructor(
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex: StateFlow<Int> get() = _currentIndex
 
+    private val _isAutoScrollPaused = MutableStateFlow(false)
+    val isAutoScrollPaused: StateFlow<Boolean> get() = _isAutoScrollPaused
+
+    fun pauseAutoScroll() {
+        _isAutoScrollPaused.value = true
+    }
+
+    fun resumeAutoScroll() {
+        _isAutoScrollPaused.value = false
+    }
+
     init {
         viewModelScope.launch {
             // Invocar la nueva función que utiliza nombres incrementales (por ejemplo, fondo1.png, fondo2.png, etc.)
@@ -37,6 +48,13 @@ class BannerViewModel @Inject constructor(
                     _currentIndex.value = (_currentIndex.value + 1) % urls.size
                 }
             }
+        }
+    }
+    fun updateIndex(delta: Int) {
+        val urls = _imageUrls.value
+        if (urls.isNotEmpty()) {
+            val newIndex = (_currentIndex.value + delta + urls.size) % urls.size
+            _currentIndex.value = newIndex
         }
     }
 }

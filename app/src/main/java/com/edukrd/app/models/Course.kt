@@ -10,5 +10,7 @@ data class Course(
     val content: List<Map<String, Any>> = emptyList(),
     val medalla: String = "",
     val recompenza: Int = 0,
-    val recompenzaExtra: Int = 0
+    val recompenzaExtra: Int = 0,
+    val referencias: List<String> = emptyList(),
+    val categoria: String = ""
 )

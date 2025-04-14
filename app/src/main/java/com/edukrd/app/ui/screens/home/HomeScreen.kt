@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,6 +50,8 @@ import com.edukrd.app.ui.components.GlobalStatsDialog
 import com.edukrd.app.ui.components.LoadingPlaceholder
 import com.edukrd.app.ui.components.MotivationalBubble
 import com.edukrd.app.ui.components.ReportDialog
+import com.edukrd.app.ui.screens.home.components.CategorySelector
+import com.edukrd.app.ui.screens.home.components.CountdownTimer
 import com.edukrd.app.ui.screens.home.components.FullScreenCourseDetailSheet
 import com.edukrd.app.ui.screens.home.components.TopHeader
 import com.edukrd.app.ui.screens.home.components.TutorialOverlay
@@ -60,18 +61,17 @@ import com.edukrd.app.viewmodel.ExamViewModel
 import com.edukrd.app.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTiendaOffset: Offset,navRankingOffset: Offset) {
-    // Inyectamos los tres ViewModels originales
+fun HomeScreen(
+    navController: NavController,
+    navMedallasOffset: Offset,
+    navTiendaOffset: Offset,
+    navRankingOffset: Offset
+) {
     val userViewModel: UserViewModel = hiltViewModel()
     val courseViewModel: CourseViewModel = hiltViewModel()
     val examViewModel: ExamViewModel = hiltViewModel()
-
-
-
-
 
     // Cargar datos al iniciar
     LaunchedEffect(Unit) {
@@ -111,7 +111,6 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
     var showGlobalStatsDialog by remember { mutableStateOf(false) }
 
     // Estados para el tutorial overlay:
-    // showTutorialOverlay controla su visualización, y hasShownTutorial evita reactivarlo en la misma sesión.
     var showTutorialOverlay by remember { mutableStateOf(false) }
     var hasShownTutorial by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
@@ -121,12 +120,15 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
     var logoutOffset by remember { mutableStateOf(Offset.Zero) }
     var bannerOffset by remember { mutableStateOf(Offset.Zero) }
 
-    //estados para los reportes
+    // Estados para los reportes
     var showHelpDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
 
     // Variable para almacenar la posición del contenedor raíz (para conversión de coordenadas)
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
+
+    // Estado para la categoría actual; nulo indica que se muestran todos
+    var currentCategory by remember { mutableStateOf<String?>(null) }
 
     // Activación automática del tutorial:
     LaunchedEffect(userData) {
@@ -161,187 +163,208 @@ fun HomeScreen(navController: NavController, navMedallasOffset: Offset,navTienda
             }
         }
     ) {
-        // Contenedor raíz que captura su posición global para la conversión de coordenadas
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coordinates ->
-                    // Guardamos la posición del contenedor raíz en coordenadas de ventana
-                    rootOffset = coordinates.localToWindow(Offset.Zero)
-                }
-        ) {
-            Scaffold(
-                topBar = {
-                    TopHeader(
-                        userName = userData?.name ?: "User",
-                        onSettingsClick = { navController.navigate("settings") },
-                        onLogoutClick = {
-                            navController.navigate("login") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                        },
-                        onSettingsIconPosition = { offset ->
-                            settingsOffset = offset
-                        },
-                        onLogoutIconPosition = { offset ->
-                            logoutOffset = offset
-                        }
-                    )
-                },
-                /*bottomBar = {
-                    BottomNavigationBar(
-                        navController,
-                        currentRoute = "home",
-                        onMedalsIconPosition = { offset ->
-                            navMedallasOffset = offset
-                        },
-                        onStoreIconPosition = { offset ->
-                            navTiendaOffset = offset
-                        },
-                        onRankingIconPosition = { offset ->
-                            navRankingOffset = offset
-                        }
-                    )
-                },*/
-                floatingActionButton = {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White)
-                            .clickable { showHelpDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Mostrar opciones de ayuda",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                },
-                floatingActionButtonPosition = FabPosition.Start
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                    when {
-                        isLoading -> {
-                            LoadingPlaceholder()
-                        }
-                        courseError != null -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = courseError!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                        }
-                        else -> {
-                            // Contenido principal de HomeScreen.
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                                    .background(MaterialTheme.colorScheme.background)
-                            ) {
-                                // BannerSection con medición de posición.
-                                BannerSection(
-                                    userName = userData?.name ?: "User",
-                                    userGoalsState = userGoalsState,
-                                    onDailyTargetClick = { showGlobalStatsDialog = true },
-                                    onBannerIconPosition = { offset ->
-                                        bannerOffset = offset
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                // CourseGrid
-                                CourseGrid(
-                                    courses = courses,
-                                    passedCourseIds = passedCourseIds,
-                                    coinRewards = coinRewards,
-                                    onCourseClick = { course ->
-                                        selectedCourse = course
-                                        coroutineScope.launch { sheetState.show() }
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(24.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    // Otros elementos de la UI...
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-// Si el diálogo de estadísticas globales se debe mostrar.
-            if (showGlobalStatsDialog) {
-                GlobalStatsDialog(
-                    onDismiss = { showGlobalStatsDialog = false },
-                    dailyCurrent = userGoalsState.dailyCurrent,
-                    dailyTarget = userGoalsState.dailyTarget,
-                    weeklyCurrent = userGoalsState.weeklyCurrent,
-                    weeklyTarget = userGoalsState.weeklyTarget,
-                    monthlyCurrent = userGoalsState.monthlyCurrent,
-                    monthlyTarget = userGoalsState.monthlyTarget,
-                    dailyData = dailyData,
-                    weeklyData = weeklyData,
-                    monthlyData = monthlyData
-                )
-            }
-
-// Diálogo de ayuda: pregunta si el usuario quiere ver el tutorial o realizar un reporte.
-            if (showHelpDialog) {
-                AlertDialog(
-                    onDismissRequest = { showHelpDialog = false },
-                    title = { Text("Ayuda") },
-                    text = { Text("¿Qué deseas hacer?") },
-                    confirmButton = {
-                        Button(onClick = {
-                            showHelpDialog = false
-                            showTutorialOverlay = true
-                        }) {
-                            Text("Tutorial")
+        Scaffold(
+            topBar = {
+                TopHeader(
+                    userName = userData?.name ?: "User",
+                    onSettingsClick = { navController.navigate("settings") },
+                    onLogoutClick = {
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
                         }
                     },
-                    dismissButton = {
-                        Button(onClick = {
-                            showHelpDialog = false
-                            showReportDialog = true
-                        }) {
-                            Text("Reporte")
+                    onSettingsIconPosition = { offset -> settingsOffset = offset },
+                    onLogoutIconPosition = { offset -> logoutOffset = offset }
+                )
+            },
+            floatingActionButton = {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White)
+                        .clickable { showHelpDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = "Mostrar opciones de ayuda",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            floatingActionButtonPosition = FabPosition.Start
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                when {
+                    isLoading -> {
+                        LoadingPlaceholder()
+                    }
+                    courseError != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = courseError!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
                     }
-                )
-            }
+                    else -> {
+                        // Filtrar la lista de cursos según la categoría (si se ha seleccionado)
+                        val filteredCourses = if (currentCategory.isNullOrEmpty()) {
+                            courses
+                        } else {
+                            courses.filter { it.categoria.equals(currentCategory, ignoreCase = true) }
+                        }
 
-// Diálogo para enviar reporte.
-            if (showReportDialog) {
-                ReportDialog(
-                    onDismiss = { showReportDialog = false }
-                )
-            }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .background(MaterialTheme.colorScheme.background)
+                        ) {
+                            // BannerSection: muestra el banner (imagen, overlay, etc.) sin DailyProgressBar
+                            BannerSection(
+                                userName = userData?.name ?: "User",
+                                userGoalsState = userGoalsState,
+                                onDailyTargetClick = { showGlobalStatsDialog = true },
+                                onBannerIconPosition = { offset -> bannerOffset = offset }
+                            )
+                            // Contenedor del contador y DailyProgressBar (tal como lo tienes)
+                            // Usa una Column para ordenar verticalmente el contenido:
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp)
+                            ) {
+                                // Primer bloque: un Box que solapa el CountdownTimer y el DailyProgressBar
+                                Box(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    CountdownTimer(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(top = 2.dp, end = 2.dp)
+                                    )
+                                    DailyProgressBar(
+                                        dailyCurrent = userGoalsState.dailyCurrent,
+                                        dailyTarget = userGoalsState.dailyTarget,
+                                        onDailyTargetClick = { showGlobalStatsDialog = true },
+                                        onBannerIconPosition = { /* ... */ },
+                                        modifier = Modifier.align(Alignment.TopStart)
+                                    )
+                                }
+                                // Espacio reducido entre el Box y el CategorySelector.
+                                Spacer(modifier = Modifier.height(4.dp))
 
-// Overlay del tutorial (si corresponde).
-            if (showTutorialOverlay) {
-                TutorialOverlay(
-                    onDismiss = { showTutorialOverlay = false }
-                )
+                                // Extraer las categorías únicas de los cursos
+                                val categories = courses.map { it.categoria }
+                                    .filter { it.isNotBlank() }
+                                    .distinct()
+
+                                // Segundo bloque: CategorySelector con los chips redondeados
+                                CategorySelector(
+                                    categories = categories,
+                                    currentCategory = currentCategory,
+                                    onCategorySelected = { selected ->
+                                        currentCategory = selected
+                                    }
+                                )
+                            }
+
+                            // Spacer(modifier = Modifier.height(16.dp))
+                            // Agregar el selector de categorías
+                            // Se extraen las categorías únicas, ignorando valores en blanco
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            // CourseGrid con cursos filtrados
+                            CourseGrid(
+                                courses = filteredCourses,
+                                passedCourseIds = passedCourseIds,
+                                coinRewards = coinRewards,
+                                onCourseClick = { course ->
+                                    selectedCourse = course
+                                    coroutineScope.launch { sheetState.show() }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                // Otros elementos de la UI...
+                            }
+                        }
+                    }
+                }
             }
-            MotivationalBubble(
-                message = "Pulsa aquí \nEMPECECMOS A APRENDER!",
-                detailedDescription = "Desde esta pantalla tienes acceso a toda la aplicacion. Observa tu objetivo diario; este te indicará el promedio de examanes que debes completar, y así serás el 1ro en el ranking. \nPulsa en las imagenes, son cursos. Al completarlos, obtendras su medalla, así como monedas de recompenza"
+        }
+
+        // Diálogo de estadísticas globales (metas)
+        if (showGlobalStatsDialog) {
+            GlobalStatsDialog(
+                onDismiss = { showGlobalStatsDialog = false },
+                dailyCurrent = userGoalsState.dailyCurrent,
+                dailyTarget = userGoalsState.dailyTarget,
+                weeklyCurrent = userGoalsState.weeklyCurrent,
+                weeklyTarget = userGoalsState.weeklyTarget,
+                monthlyCurrent = userGoalsState.monthlyCurrent,
+                monthlyTarget = userGoalsState.monthlyTarget,
+                dailyData = dailyData,
+                weeklyData = weeklyData,
+                monthlyData = monthlyData
             )
         }
-    }    }
+
+        // Diálogo de ayuda: pregunta si el usuario quiere ver el tutorial o realizar un reporte.
+        if (showHelpDialog) {
+            AlertDialog(
+                onDismissRequest = { showHelpDialog = false },
+                title = { Text("Ayuda") },
+                text = { Text("¿Qué deseas hacer?") },
+                confirmButton = {
+                    Button(onClick = {
+                        showHelpDialog = false
+                        showTutorialOverlay = true
+                    }) {
+                        Text("Tutorial")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = {
+                        showHelpDialog = false
+                        showReportDialog = true
+                    }) {
+                        Text("Reporte")
+                    }
+                }
+            )
+        }
+
+        // Diálogo para enviar reporte.
+        if (showReportDialog) {
+            ReportDialog(
+                onDismiss = { showReportDialog = false }
+            )
+        }
+
+        // Overlay del tutorial (si corresponde).
+        if (showTutorialOverlay) {
+            TutorialOverlay(
+                onDismiss = { showTutorialOverlay = false }
+            )
+        }
+        MotivationalBubble(
+            message = "Pulsa aquí \nEMPECECMOS A APRENDER!",
+            detailedDescription = "Desde esta pantalla tienes acceso a toda la aplicación. Observa tu objetivo diario; este te indicará el promedio de exámenes que debes completar, y así serás el 1ro en el ranking. \nPulsa en las imágenes, son cursos. Al completarlos, obtendrás su medalla, así como monedas de recompensa"
+        )
+    }
+}

@@ -42,6 +42,9 @@ class CourseViewModel @Inject constructor(
     private val _courseContent = MutableStateFlow<List<Map<String, Any>>>(emptyList())
     val courseContent: StateFlow<List<Map<String, Any>>> = _courseContent
 
+    private val _courseReferences = MutableStateFlow<List<String>>(emptyList())
+    val courseReferences: StateFlow<List<String>> = _courseReferences
+
     /**
      * Carga la lista de cursos, progreso y calcula las monedas a otorgar por curso hoy.
      */
@@ -112,6 +115,40 @@ class CourseViewModel @Inject constructor(
                 Log.d("CourseViewModel", "Curso iniciado: $courseId")
             } catch (e: Exception) {
                 Log.e("CourseViewModel", "Error al iniciar curso", e)
+            }
+        }
+    }
+    fun loadCoursesByCategory(category: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                // Se obtienen todos los cursos
+                val courseList = courseRepository.getCourses()
+                // Se filtran según la categoría (ignorando mayúsculas/minúsculas)
+                val filtered = courseList.filter { it.categoria.equals(category, ignoreCase = true) }
+                _courses.value = filtered
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error al cargar cursos por categoría", e)
+                _error.value = e.message
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+    fun loadReferencesByCourseId(courseId: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val courseObj = courseRepository.getCourseById(courseId)
+                _courseReferences.value = courseObj?.referencias ?: emptyList()
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error al cargar referencias para curso $courseId", e)
+                _error.value = "Error al cargar referencias: ${e.message}"
+                _courseReferences.value = emptyList()
+            } finally {
+                _loading.value = false
             }
         }
     }
